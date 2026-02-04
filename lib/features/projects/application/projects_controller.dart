@@ -4,6 +4,7 @@ import '../../project_repository.dart';
 import '../data/hive_project_repository.dart';
 import '../domain/project.dart';
 import '../domain/measurement_point.dart';
+import 'dart:convert';
 
 final projectRepositoryProvider = Provider<ProjectRepository>((ref) {
   return HiveProjectRepository();
@@ -150,4 +151,58 @@ class ProjectsController extends StateNotifier<AsyncValue<List<Project>>> {
     await _repo.upsertProject(updated);
     await refresh();
   }
+
+  Future<String> exportProjectToJsonString(String projectId) async {
+    final p = await _repo.getProject(projectId);
+    if (p == null) throw StateError('Project not found');
+    // pretty printed JSON is nicer for humans
+    return const JsonEncoder.withIndent('  ').convert(p.toJson());
+  }
+
+  /// Import JSON into an existing project (overwrite points etc)
+  Future<void> importIntoProject({
+    required String projectId,
+    required String jsonString,
+  }) async {
+    final decoded = jsonDecode(jsonString);
+    if (decoded is! Map) throw FormatException('Invalid JSON');
+
+    final incoming = Project.fromJson(Map<String, dynamic>.from(decoded));
+
+    // overwrite current project but preserve its ID (and name if you want)
+    final updated = incoming.copyWith(id: projectId, updatedAt: DateTime.now());
+
+    await _repo.upsertProject(updated);
+    await refresh();
+  }
+
+  /// Import JSON as a *new* project (copy)
+  Future<String> importAsNewProject({
+    required String jsonString,
+    String? nameOverride,
+  }) async {
+    final decoded = jsonDecode(jsonString);
+    if (decoded is! Map) throw FormatException('Invalid JSON');
+
+    final incoming = Project.fromJson(Map<String, dynamic>.from(decoded));
+
+    final now = DateTime.now();
+    final newId = const Uuid().v4();
+
+    final created = incoming.copyWith(
+      id: newId,
+      name: (nameOverride?.trim().isNotEmpty ?? false)
+          ? nameOverride!.trim()
+          : '${incoming.name} (import)',
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    await _repo.upsertProject(created);
+    await refresh();
+    return newId;
+  }
+
+  Future<Project?> getProjectById(String projectId) =>
+      _repo.getProject(projectId);
 }

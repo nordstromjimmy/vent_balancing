@@ -190,7 +190,8 @@ class ProjectsListPage extends ConsumerWidget {
                           value: 'rename',
                           child: Text('Ändra namn'),
                         ),
-                        PopupMenuItem(value: 'delete', child: Text('Radera')),
+                        //PopupMenuDivider(),
+                        //PopupMenuItem(value: 'delete', child: Text('Radera')),
                       ],
                     ),
                     onTap: () async {

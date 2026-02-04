@@ -1,6 +1,11 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/utils/dialogs.dart';
 import '../../../core/widgets/metric_chip.dart';
@@ -40,6 +45,109 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage>
   void dispose() {
     _tabs.dispose();
     super.dispose();
+  }
+
+  Future<void> _exportJson(BuildContext context) async {
+    final controller = ref.read(projectsControllerProvider.notifier);
+
+    try {
+      final p = await controller.getProjectById(widget.projectId);
+      final jsonString = await controller.exportProjectToJsonString(
+        widget.projectId,
+      );
+
+      final dir = await getTemporaryDirectory();
+      final safeName = (p?.name ?? 'project')
+          .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')
+          .trim();
+
+      final file = File('${dir.path}/$safeName.json');
+      await file.writeAsString(jsonString);
+
+      await Share.shareXFiles([
+        XFile(file.path),
+      ], text: 'Export: ${p?.name ?? ''}');
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Export failed: $e')));
+    }
+  }
+
+  Future<void> _importJson(BuildContext context) async {
+    final controller = ref.read(projectsControllerProvider.notifier);
+
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+        withData: true, // important for web/desktop
+      );
+
+      if (result == null || result.files.isEmpty) return;
+
+      final file = result.files.first;
+
+      final content = file.bytes != null
+          ? utf8.decode(file.bytes!) // correct UTF-8 decoding
+          : await File(file.path!).readAsString(); // already UTF-8 by default
+
+      // Ask user: overwrite current or import as copy
+      if (!context.mounted) return;
+      final choice = await showDialog<String>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Import JSON'),
+          content: const Text(
+            'Do you want to overwrite this project, or import as a new project?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            FilledButton.tonal(
+              onPressed: () => Navigator.pop(context, 'copy'),
+              child: const Text('Import as copy'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, 'overwrite'),
+              child: const Text('Overwrite'),
+            ),
+          ],
+        ),
+      );
+
+      if (choice == null) return;
+
+      if (choice == 'overwrite') {
+        await controller.importIntoProject(
+          projectId: widget.projectId,
+          jsonString: content,
+        );
+      } else if (choice == 'copy') {
+        final newId = await controller.importAsNewProject(jsonString: content);
+        if (!context.mounted) return;
+        // Navigate to the new project
+        await Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => ProjectEditorPage(projectId: newId),
+          ),
+        );
+        return;
+      }
+
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Import completed')));
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Import failed: $e')));
+    }
   }
 
   Future<void> _addPointDialog(BuildContext context) async {
@@ -261,9 +369,25 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage>
                   if (context.mounted) Navigator.pop(context);
                 }
               }
+              if (value == 'export_json') {
+                await _exportJson(context);
+              }
+              if (value == 'import_json') {
+                await _importJson(context);
+              }
             },
             itemBuilder: (context) => const [
               PopupMenuItem(value: 'edit', child: Text('Redigera projekt')),
+
+              PopupMenuItem(
+                value: 'export_json',
+                child: Text('Exportera JSON'),
+              ),
+              PopupMenuItem(
+                value: 'import_json',
+                child: Text('Importera JSON'),
+              ),
+              PopupMenuDivider(),
               PopupMenuItem(value: 'delete', child: Text('Radera')),
             ],
           ),
