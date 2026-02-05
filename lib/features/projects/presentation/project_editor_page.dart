@@ -167,12 +167,6 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage>
     bool includeExhaust = true;
     bool includeBoost = false;
 
-    double? parseDouble(String s) {
-      final raw = s.trim().replaceAll(',', '.');
-      if (raw.isEmpty) return null;
-      return double.tryParse(raw);
-    }
-
     InputDecoration dec(String label, String hint) =>
         InputDecoration(labelText: label, hintText: hint);
 
@@ -292,52 +286,59 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage>
                     if (baseLabel.isEmpty) return;
                     if (!includeSupply && !includeExhaust) return;
 
+                    double? parseCtrl(TextEditingController c) {
+                      final raw = c.text.trim().replaceAll(',', '.');
+                      if (raw.isEmpty) return null;
+                      return double.tryParse(raw);
+                    }
+
+                    double? clean(double? v) => (v != null && v > 0) ? v : null;
+
                     final created = <MeasurementPoint>[];
 
                     if (includeSupply) {
-                      final base = parseDouble(supplyBaseController.text);
-                      if (base == null || base <= 0) return;
-
+                      final base = clean(parseCtrl(supplyBaseController));
                       final boost = includeBoost
-                          ? parseDouble(supplyBoostController.text)
+                          ? clean(parseCtrl(supplyBoostController))
                           : null;
 
-                      if (includeBoost && (boost == null || boost <= 0)) return;
+                      final hasAny = base != null || boost != null;
+                      if (!hasAny) return;
 
                       created.add(
                         MeasurementPoint(
                           id: uuid.v4(),
                           label: baseLabel,
                           airType: AirType.supply,
-                          projectedBaseLs: base,
-                          projectedBoostLs: boost,
+                          projectedBaseLs: base, // can be null
+                          projectedBoostLs: boost, // can be null
                         ),
                       );
                     }
 
                     if (includeExhaust) {
-                      final base = parseDouble(exhaustBaseController.text);
-                      if (base == null || base <= 0) return;
-
+                      final base = clean(parseCtrl(exhaustBaseController));
                       final boost = includeBoost
-                          ? parseDouble(exhaustBoostController.text)
+                          ? clean(parseCtrl(exhaustBoostController))
                           : null;
 
-                      if (includeBoost && (boost == null || boost <= 0)) return;
+                      final hasAny = base != null || boost != null;
+                      if (!hasAny) return;
 
                       created.add(
                         MeasurementPoint(
                           id: uuid.v4(),
                           label: baseLabel,
-                          airType: AirType.exhaust, // ✅ important fix
-                          projectedBaseLs: base,
-                          projectedBoostLs: boost,
+                          airType: AirType.exhaust,
+                          projectedBaseLs: base, // can be null
+                          projectedBoostLs: boost, // can be null
                         ),
                       );
                     }
 
                     Navigator.pop(context, created);
                   },
+
                   child: const Text('Spara'),
                 ),
               ],
@@ -479,6 +480,7 @@ class _MeasureTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final projectsAsync = ref.watch(projectsControllerProvider);
+    String fmtLs(double? v) => v == null ? '—' : '${v.toStringAsFixed(1)} l/s';
 
     return projectsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -516,7 +518,7 @@ class _MeasureTab extends ConsumerWidget {
 
             final metaText = meta.isEmpty ? null : meta.join(' • ');
             final eval = FlowEval(
-              projected: pt.projectedBaseLs,
+              projected: pt.projectedBaseLs ?? 0,
               measured: pt.measuredBaseLs,
               tolerancePct: pt.tolerancePct,
             );
@@ -575,7 +577,7 @@ class _MeasureTab extends ConsumerWidget {
                             ),
                             const SizedBox(width: 8),
 
-                            // ✅ Air type moved next to label
+                            // Air type moved next to label
                             Text(
                               pt.airType == AirType.supply
                                   ? 'Tilluft'
@@ -593,35 +595,28 @@ class _MeasureTab extends ConsumerWidget {
 
                         const SizedBox(height: 10),
 
-                        // ✅ Wrap can only contain non-flex children (no Spacer/Expanded)
+                        // Wrap can only contain non-flex children (no Spacer/Expanded)
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
                           children: [
                             MetricChip(
                               label: 'Grund proj',
-                              value:
-                                  '${pt.projectedBaseLs.toStringAsFixed(1)} l/s',
+                              value: fmtLs(pt.projectedBaseLs),
                             ),
                             MetricChip(
                               label: 'Grund mätt',
-                              value: pt.measuredBaseLs == null
-                                  ? '—'
-                                  : '${pt.measuredBaseLs!.toStringAsFixed(1)} l/s',
+                              value: fmtLs(pt.measuredBaseLs),
                             ),
                             if (pt.projectedBoostLs != null ||
                                 pt.measuredBoostLs != null) ...[
                               MetricChip(
                                 label: 'Forc proj',
-                                value: pt.projectedBoostLs == null
-                                    ? '—'
-                                    : '${pt.projectedBoostLs!.toStringAsFixed(1)} l/s',
+                                value: fmtLs(pt.projectedBoostLs),
                               ),
                               MetricChip(
                                 label: 'Forc mätt',
-                                value: pt.measuredBoostLs == null
-                                    ? '—'
-                                    : '${pt.measuredBoostLs!.toStringAsFixed(1)} l/s',
+                                value: fmtLs(pt.measuredBoostLs),
                               ),
                             ],
                           ],
@@ -629,15 +624,21 @@ class _MeasureTab extends ConsumerWidget {
 
                         const SizedBox(height: 12),
 
-                        _MeasuredInputRow(
-                          initialValue: pt.measuredBaseLs,
-                          onChanged: (val) {
+                        _MeasuredInputs(
+                          baseInitialValue: pt.measuredBaseLs,
+                          onBaseChanged: (val) {
                             ref
                                 .read(projectsControllerProvider.notifier)
-                                .updateMeasured(projectId, pt.id, val);
+                                .updateMeasuredBase(projectId, pt.id, val);
+                          },
+                          hasBoost: pt.projectedBoostLs != null,
+                          boostInitialValue: pt.measuredBoostLs,
+                          onBoostChanged: (val) {
+                            ref
+                                .read(projectsControllerProvider.notifier)
+                                .updateMeasuredBoost(projectId, pt.id, val);
                           },
                         ),
-
                         if (metaText != null) ...[
                           const SizedBox(height: 6),
                           Text(
@@ -660,88 +661,122 @@ class _MeasureTab extends ConsumerWidget {
   }
 }
 
-class _MeasuredInputRow extends StatefulWidget {
-  const _MeasuredInputRow({
-    required this.initialValue,
-    required this.onChanged,
+class _MeasuredInputs extends StatefulWidget {
+  const _MeasuredInputs({
+    required this.baseInitialValue,
+    required this.onBaseChanged,
+    required this.hasBoost,
+    required this.boostInitialValue,
+    required this.onBoostChanged,
   });
 
-  final double? initialValue;
-  final ValueChanged<double?> onChanged;
+  final double? baseInitialValue;
+  final ValueChanged<double?> onBaseChanged;
+
+  final bool hasBoost;
+  final double? boostInitialValue;
+  final ValueChanged<double?> onBoostChanged;
 
   @override
-  State<_MeasuredInputRow> createState() => _MeasuredInputRowState();
+  State<_MeasuredInputs> createState() => _MeasuredInputsState();
 }
 
-class _MeasuredInputRowState extends State<_MeasuredInputRow> {
-  late final TextEditingController _controller;
+class _MeasuredInputsState extends State<_MeasuredInputs> {
+  late final TextEditingController _baseController;
+  late final TextEditingController _boostController;
 
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(
-      text: widget.initialValue?.toStringAsFixed(1) ?? '',
+    _baseController = TextEditingController(
+      text: widget.baseInitialValue?.toStringAsFixed(1) ?? '',
+    );
+    _boostController = TextEditingController(
+      text: widget.boostInitialValue?.toStringAsFixed(1) ?? '',
     );
   }
 
   @override
-  void didUpdateWidget(covariant _MeasuredInputRow oldWidget) {
+  void didUpdateWidget(covariant _MeasuredInputs oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // If the value was updated externally (rare in v1), reflect it:
-    final newText = widget.initialValue?.toStringAsFixed(1) ?? '';
-    if (_controller.text != newText) {
-      _controller.text = newText;
-    }
+
+    final baseText = widget.baseInitialValue?.toStringAsFixed(1) ?? '';
+    if (_baseController.text != baseText) _baseController.text = baseText;
+
+    final boostText = widget.boostInitialValue?.toStringAsFixed(1) ?? '';
+    if (_boostController.text != boostText) _boostController.text = boostText;
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _baseController.dispose();
+    _boostController.dispose();
     super.dispose();
   }
 
-  void _commit() {
-    final raw = _controller.text.trim().replaceAll(',', '.');
-    if (raw.isEmpty) {
-      widget.onChanged(null);
-      return;
-    }
-    final v = double.tryParse(raw);
-    widget.onChanged(v);
+  double? _parse(String s) {
+    final raw = s.trim().replaceAll(',', '.');
+    if (raw.isEmpty) return null;
+    return double.tryParse(raw);
   }
+
+  void _commitBase() => widget.onBaseChanged(_parse(_baseController.text));
+  void _commitBoost() => widget.onBoostChanged(_parse(_boostController.text));
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: TextField(
-            controller: _controller,
-            decoration: const InputDecoration(
-              labelText: 'Uppmätt (l/s)',
-              border: OutlineInputBorder(),
+        TextField(
+          controller: _baseController,
+          decoration: InputDecoration(
+            labelText: 'Uppmätt grund (l/s)',
+            border: const OutlineInputBorder(),
+            isDense: true,
+            suffixIcon: IconButton(
+              tooltip: 'Rensa',
+              icon: const Icon(
+                Icons.backspace,
+              ), // safer than backspace_outlined
+              onPressed: () {
+                _baseController.clear();
+                widget.onBaseChanged(null);
+              },
+            ),
+          ),
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+          ],
+          onSubmitted: (_) => _commitBase(),
+          onEditingComplete: _commitBase,
+        ),
+
+        if (widget.hasBoost) ...[
+          const SizedBox(height: 8),
+          TextField(
+            controller: _boostController,
+            decoration: InputDecoration(
+              labelText: 'Uppmätt forcerat (l/s)',
+              border: const OutlineInputBorder(),
               isDense: true,
+              suffixIcon: IconButton(
+                tooltip: 'Rensa',
+                icon: const Icon(Icons.backspace),
+                onPressed: () {
+                  _boostController.clear();
+                  widget.onBoostChanged(null);
+                },
+              ),
             ),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
             ],
-            onChanged: (_) {
-              // optional: live update, but can be noisy. we commit on blur/submit:
-            },
-            onSubmitted: (_) => _commit(),
-            onEditingComplete: _commit,
+            onSubmitted: (_) => _commitBoost(),
+            onEditingComplete: _commitBoost,
           ),
-        ),
-        const SizedBox(width: 8),
-        IconButton(
-          tooltip: 'Clear',
-          onPressed: () {
-            _controller.clear();
-            widget.onChanged(null);
-          },
-          icon: const Icon(Icons.backspace_outlined),
-        ),
+        ],
       ],
     );
   }

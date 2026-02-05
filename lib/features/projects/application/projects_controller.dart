@@ -52,7 +52,7 @@ class ProjectsController extends StateNotifier<AsyncValue<List<Project>>> {
     await refresh();
   }
 
-  Future<void> updateMeasured(
+  Future<void> updateMeasuredBase(
     String projectId,
     String pointId,
     double? measured,
@@ -63,6 +63,25 @@ class ProjectsController extends StateNotifier<AsyncValue<List<Project>>> {
     final updatedPoints = p.points.map((pt) {
       if (pt.id != pointId) return pt;
       return pt.copyWith(measuredBaseLs: measured);
+    }).toList();
+
+    await _repo.upsertProject(
+      p.copyWith(points: updatedPoints, updatedAt: DateTime.now()),
+    );
+    await refresh();
+  }
+
+  Future<void> updateMeasuredBoost(
+    String projectId,
+    String pointId,
+    double? measured,
+  ) async {
+    final p = await _repo.getProject(projectId);
+    if (p == null) return;
+
+    final updatedPoints = p.points.map((pt) {
+      if (pt.id != pointId) return pt;
+      return pt.copyWith(measuredBoostLs: measured);
     }).toList();
 
     await _repo.upsertProject(

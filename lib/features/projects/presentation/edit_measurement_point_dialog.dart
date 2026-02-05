@@ -38,7 +38,7 @@ class _EditMeasurementPointDialogState
     final p = widget.point;
     _label = TextEditingController(text: p.label);
     _projected = TextEditingController(
-      text: p.projectedBaseLs.toStringAsFixed(1),
+      text: p.projectedBaseLs?.toStringAsFixed(1),
     );
     _measured = TextEditingController(
       text: p.measuredBaseLs?.toStringAsFixed(1) ?? '',
@@ -53,7 +53,7 @@ class _EditMeasurementPointDialogState
     _setting = TextEditingController(text: widget.point.setting ?? '');
 
     _projectedBase = TextEditingController(
-      text: p.projectedBaseLs.toStringAsFixed(1),
+      text: p.projectedBaseLs?.toStringAsFixed(1),
     );
     _measuredBase = TextEditingController(
       text: p.measuredBaseLs?.toStringAsFixed(1) ?? '',
@@ -91,35 +91,38 @@ class _EditMeasurementPointDialogState
   }
 
   void _save() {
+    double? clean(double? v) => (v != null && v > 0) ? v : null;
+
     final label = _label.text.trim();
-    final projected = _parseDouble(_projected.text);
+    if (label.isEmpty) return;
 
     final pressure = _parseDouble(_pressure.text);
     final kFactor = _parseDouble(_kFactor.text);
     final setting = _setting.text.trim();
 
-    final projectedBase = _parseDouble(_projectedBase.text);
-    final measuredBase = _parseDouble(_measuredBase.text);
+    // Base
+    final projectedBase = clean(_parseDouble(_projectedBase.text));
+    final measuredBase = clean(_parseDouble(_measuredBase.text));
 
-    if (projectedBase == null || projectedBase <= 0) return;
-
+    // Boost
     final projectedBoost = _hasBoost
-        ? _parseDouble(_projectedBoost.text)
+        ? clean(_parseDouble(_projectedBoost.text))
         : null;
-    final measuredBoost = _hasBoost ? _parseDouble(_measuredBoost.text) : null;
+    final measuredBoost = _hasBoost
+        ? clean(_parseDouble(_measuredBoost.text))
+        : null;
 
-    if (_hasBoost && (projectedBoost == null || projectedBoost <= 0)) return;
-
-    if (label.isEmpty) return;
-    if (projected == null || projected <= 0) return;
+    // Require at least one projected flow (base or boost)
+    final hasAnyProjected = projectedBase != null || projectedBoost != null;
+    if (!hasAnyProjected) return;
 
     Navigator.pop(
       context,
       widget.point.copyWith(
         label: label,
-        projectedBaseLs: projectedBase,
+        projectedBaseLs: projectedBase, // can be null
         measuredBaseLs: measuredBase,
-        projectedBoostLs: projectedBoost,
+        projectedBoostLs: projectedBoost, // can be null
         measuredBoostLs: measuredBoost,
         pressurePa: pressure,
         kFactor: kFactor,

@@ -9,20 +9,36 @@ import 'project_editor_page.dart';
 
 enum FlowMode { base, boost }
 
+enum SummaryMode { base, boost }
+
 class SystemSummary {
-  final double projectedSupply;
-  final double projectedExhaust;
-  final double measuredSupply;
-  final double measuredExhaust;
-  final int measuredCount;
+  // Base totals
+  final double projectedBaseSupply;
+  final double projectedBaseExhaust;
+  final double measuredBaseSupply;
+  final double measuredBaseExhaust;
+
+  // Boost totals
+  final double projectedBoostSupply;
+  final double projectedBoostExhaust;
+  final double measuredBoostSupply;
+  final double measuredBoostExhaust;
+
+  final int measuredBaseCount;
+  final int measuredBoostCount;
   final int totalCount;
 
   const SystemSummary({
-    required this.projectedSupply,
-    required this.projectedExhaust,
-    required this.measuredSupply,
-    required this.measuredExhaust,
-    required this.measuredCount,
+    required this.projectedBaseSupply,
+    required this.projectedBaseExhaust,
+    required this.measuredBaseSupply,
+    required this.measuredBaseExhaust,
+    required this.projectedBoostSupply,
+    required this.projectedBoostExhaust,
+    required this.measuredBoostSupply,
+    required this.measuredBoostExhaust,
+    required this.measuredBaseCount,
+    required this.measuredBoostCount,
     required this.totalCount,
   });
 
@@ -32,51 +48,105 @@ class SystemSummary {
     return ratio * 100.0;
   }
 
-  /// Balanced between supply and exhaust (DESIGN)
-  double? get projectedBalancePct =>
-      _balancePct(projectedSupply, projectedExhaust);
+  // Base balance
+  double? get baseProjectedBalancePct =>
+      _balancePct(projectedBaseSupply, projectedBaseExhaust);
+  double? get baseMeasuredBalancePct =>
+      _balancePct(measuredBaseSupply, measuredBaseExhaust);
 
-  /// Balanced between supply and exhaust (MEASURED)
-  double? get measuredBalancePct =>
-      _balancePct(measuredSupply, measuredExhaust);
+  // Boost balance
+  double? get boostProjectedBalancePct =>
+      _balancePct(projectedBoostSupply, projectedBoostExhaust);
+  double? get boostMeasuredBalancePct =>
+      _balancePct(measuredBoostSupply, measuredBoostExhaust);
 
-  /// Measured supply as % of projected supply
-  double? get supplyOfProjectedPct {
-    if (projectedSupply <= 0) return null;
-    return (measuredSupply / projectedSupply) * 100.0;
-  }
+  // Base measured-vs-projected %
+  double? get baseSupplyOfProjectedPct => projectedBaseSupply <= 0
+      ? null
+      : (measuredBaseSupply / projectedBaseSupply) * 100.0;
+  double? get baseExhaustOfProjectedPct => projectedBaseExhaust <= 0
+      ? null
+      : (measuredBaseExhaust / projectedBaseExhaust) * 100.0;
 
-  /// Measured exhaust as % of projected exhaust
-  double? get exhaustOfProjectedPct {
-    if (projectedExhaust <= 0) return null;
-    return (measuredExhaust / projectedExhaust) * 100.0;
-  }
+  // Boost measured-vs-projected %
+  double? get boostSupplyOfProjectedPct => projectedBoostSupply <= 0
+      ? null
+      : (measuredBoostSupply / projectedBoostSupply) * 100.0;
+  double? get boostExhaustOfProjectedPct => projectedBoostExhaust <= 0
+      ? null
+      : (measuredBoostExhaust / projectedBoostExhaust) * 100.0;
 
-  /// Signed difference (supply - exhaust), measured totals
-  double get deltaMeasured => measuredSupply - measuredExhaust;
+  // Delta (supply - exhaust)
+  double get baseDeltaMeasured => measuredBaseSupply - measuredBaseExhaust;
+  double get boostDeltaMeasured => measuredBoostSupply - measuredBoostExhaust;
 }
 
 SystemSummary buildSystemSummary(List<MeasurementPoint> points) {
-  double ps = 0, pe = 0, ms = 0, me = 0;
-  int measuredCount = 0;
+  double pbs = 0, pbe = 0, mbs = 0, mbe = 0; // base totals
+  double pfs = 0, pfe = 0, mfs = 0, mfe = 0; // boost totals
+
+  int measuredBaseCount = 0;
+  int measuredBoostCount = 0;
 
   for (final p in points) {
-    if (p.airType == AirType.supply) {
-      ps += p.projectedBaseLs;
-      ms += (p.measuredBaseLs ?? 0);
-    } else {
-      pe += p.projectedBaseLs;
-      me += (p.measuredBaseLs ?? 0);
+    final isSupply = p.airType == AirType.supply;
+
+    // ---- Projected base (nullable) ----
+    final projBase = p.projectedBaseLs;
+    if (projBase != null && projBase > 0) {
+      if (isSupply) {
+        pbs += projBase;
+      } else {
+        pbe += projBase;
+      }
     }
-    if (p.measuredBaseLs != null) measuredCount++;
+
+    // ---- Projected boost (nullable) ----
+    final projBoost = p.projectedBoostLs;
+    if (projBoost != null && projBoost > 0) {
+      if (isSupply) {
+        pfs += projBoost;
+      } else {
+        pfe += projBoost;
+      }
+    }
+
+    // ---- Measured base (nullable) ----
+    final measBase = p.measuredBaseLs;
+    if (measBase != null) {
+      measuredBaseCount++;
+      if (isSupply) {
+        mbs += measBase;
+      } else {
+        mbe += measBase;
+      }
+    }
+
+    // ---- Measured boost (nullable) ----
+    final measBoost = p.measuredBoostLs;
+    if (measBoost != null) {
+      measuredBoostCount++;
+      if (isSupply) {
+        mfs += measBoost;
+      } else {
+        mfe += measBoost;
+      }
+    }
   }
 
   return SystemSummary(
-    projectedSupply: ps,
-    projectedExhaust: pe,
-    measuredSupply: ms,
-    measuredExhaust: me,
-    measuredCount: measuredCount,
+    projectedBaseSupply: pbs,
+    projectedBaseExhaust: pbe,
+    measuredBaseSupply: mbs,
+    measuredBaseExhaust: mbe,
+
+    projectedBoostSupply: pfs,
+    projectedBoostExhaust: pfe,
+    measuredBoostSupply: mfs,
+    measuredBoostExhaust: mfe,
+
+    measuredBaseCount: measuredBaseCount,
+    measuredBoostCount: measuredBoostCount,
     totalCount: points.length,
   );
 }
@@ -104,6 +174,8 @@ class OverviewPage extends ConsumerStatefulWidget {
 class _OverviewPageState extends ConsumerState<OverviewPage> {
   bool _summaryExpanded = false;
 
+  SummaryMode _summaryMode = SummaryMode.base;
+
   @override
   Widget build(BuildContext context) {
     final projectsAsync = ref.watch(projectsControllerProvider);
@@ -116,7 +188,7 @@ class _OverviewPageState extends ConsumerState<OverviewPage> {
 
         final items = p.points.map((pt) {
           final eval = FlowEval(
-            projected: pt.projectedBaseLs,
+            projected: pt.projectedBaseLs ?? 0,
             measured: pt.measuredBaseLs,
             tolerancePct: pt.tolerancePct,
           );
@@ -278,11 +350,33 @@ class _OverviewPageState extends ConsumerState<OverviewPage> {
                     style: TextStyle(fontWeight: FontWeight.w800),
                   ),
                   subtitle: Text(
-                    '${summary.measuredCount}/${summary.totalCount} mätta • '
-                    'Proj balans: ${summary.projectedBalancePct == null ? '—' : '${summary.projectedBalancePct!.toStringAsFixed(0)}%'} • '
-                    'Mätt balans: ${summary.measuredBalancePct == null ? '—' : '${summary.measuredBalancePct!.toStringAsFixed(0)}%'}',
+                    '${summary.measuredBaseCount}/${summary.totalCount} mätta • '
+                    'Proj balans: ${summary.baseProjectedBalancePct == null ? '—' : '${summary.baseProjectedBalancePct!.toStringAsFixed(0)}%'} • '
+                    'Mätt balans: ${summary.baseMeasuredBalancePct == null ? '—' : '${summary.baseMeasuredBalancePct!.toStringAsFixed(0)}%'}',
                   ),
-                  children: [SystemSummaryCardContent(summary: summary)],
+                  children: [
+                    // Toggle between base/boost
+                    SegmentedButton<SummaryMode>(
+                      segments: const [
+                        ButtonSegment(
+                          value: SummaryMode.base,
+                          label: Text('Grund'),
+                        ),
+                        ButtonSegment(
+                          value: SummaryMode.boost,
+                          label: Text('Forcerat'),
+                        ),
+                      ],
+                      selected: {_summaryMode},
+                      onSelectionChanged: (s) =>
+                          setState(() => _summaryMode = s.first),
+                    ),
+                    const SizedBox(height: 12),
+                    SystemSummaryCardContent(
+                      summary: summary,
+                      mode: _summaryMode,
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -306,11 +400,20 @@ class _OverviewPageState extends ConsumerState<OverviewPage> {
                       itemCount: filtered.length,
                       separatorBuilder: (_, _) => const SizedBox(height: 10),
                       itemBuilder: (context, i) {
+                        String fmtLs(double? v) =>
+                            v == null ? '—' : v.toStringAsFixed(1);
                         final pt = filtered[i].pt;
                         final eval = filtered[i].eval;
 
-                        final proj = pt.projectedBaseLs;
-                        final meas = pt.measuredBaseLs;
+                        final hasBase =
+                            (pt.projectedBaseLs != null &&
+                                pt.projectedBaseLs! > 0) ||
+                            (pt.measuredBaseLs != null);
+
+                        final hasBoost =
+                            (pt.projectedBoostLs != null &&
+                                pt.projectedBoostLs! > 0) ||
+                            (pt.measuredBoostLs != null);
 
                         final deviation = eval.deviationPct;
                         final deviationText = deviation == null
@@ -332,7 +435,8 @@ class _OverviewPageState extends ConsumerState<OverviewPage> {
 
                         return Card(
                           child: ListTile(
-                            isThreeLine: metaText != null,
+                            isThreeLine:
+                                (hasBase && hasBoost) || metaText != null,
                             title: Text(
                               pt.label,
                               style: const TextStyle(
@@ -342,9 +446,28 @@ class _OverviewPageState extends ConsumerState<OverviewPage> {
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'Uppmätt ${meas?.toStringAsFixed(1) ?? '—'} / ${proj.toStringAsFixed(1)} l/s • $deviationText',
-                                ),
+                                if (hasBase)
+                                  Text(
+                                    'Grund: ${fmtLs(pt.measuredBaseLs)} / ${fmtLs(pt.projectedBaseLs)} l/s • $deviationText',
+                                  ),
+                                if (hasBoost)
+                                  Text(
+                                    'Forc: ${fmtLs(pt.measuredBoostLs)} / ${fmtLs(pt.projectedBoostLs)} l/s',
+                                    style: TextStyle(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.outline,
+                                    ),
+                                  ),
+                                if (!hasBase && !hasBoost)
+                                  Text(
+                                    'Inga flöden angivna.',
+                                    style: TextStyle(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.outline,
+                                    ),
+                                  ),
                                 if (metaText != null) ...[
                                   const SizedBox(height: 6),
                                   Text(
@@ -372,18 +495,52 @@ class _OverviewPageState extends ConsumerState<OverviewPage> {
 }
 
 class SystemSummaryCardContent extends StatelessWidget {
-  const SystemSummaryCardContent({super.key, required this.summary});
+  const SystemSummaryCardContent({
+    super.key,
+    required this.summary,
+    required this.mode,
+  });
+
   final SystemSummary summary;
+  final SummaryMode mode;
 
   @override
   Widget build(BuildContext context) {
-    final projBal = summary.projectedBalancePct;
-    final measBal = summary.measuredBalancePct;
-
-    final supplyVsProj = summary.supplyOfProjectedPct;
-    final exhaustVsProj = summary.exhaustOfProjectedPct;
-
     String fmtPct(double? v) => v == null ? '—' : '${v.toStringAsFixed(0)}%';
+    String fmtLs(double v) => '${v.toStringAsFixed(1)} l/s';
+
+    final isBase = mode == SummaryMode.base;
+
+    final projSupply = isBase
+        ? summary.projectedBaseSupply
+        : summary.projectedBoostSupply;
+    final projExhaust = isBase
+        ? summary.projectedBaseExhaust
+        : summary.projectedBoostExhaust;
+    final measSupply = isBase
+        ? summary.measuredBaseSupply
+        : summary.measuredBoostSupply;
+    final measExhaust = isBase
+        ? summary.measuredBaseExhaust
+        : summary.measuredBoostExhaust;
+
+    final projBal = isBase
+        ? summary.baseProjectedBalancePct
+        : summary.boostProjectedBalancePct;
+    final measBal = isBase
+        ? summary.baseMeasuredBalancePct
+        : summary.boostMeasuredBalancePct;
+
+    final supplyVsProj = isBase
+        ? summary.baseSupplyOfProjectedPct
+        : summary.boostSupplyOfProjectedPct;
+    final exhaustVsProj = isBase
+        ? summary.baseExhaustOfProjectedPct
+        : summary.boostExhaustOfProjectedPct;
+
+    final delta = isBase
+        ? summary.baseDeltaMeasured
+        : summary.boostDeltaMeasured;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -392,51 +549,27 @@ class SystemSummaryCardContent extends StatelessWidget {
           spacing: 8,
           runSpacing: 8,
           children: [
-            MetricChip(label: 'Proj. Balans', value: fmtPct(projBal)),
-            MetricChip(label: 'Mätt Balans', value: fmtPct(measBal)),
-            MetricChip(label: 'TL av proj', value: fmtPct(supplyVsProj)),
-            MetricChip(label: 'FL av proj', value: fmtPct(exhaustVsProj)),
+            MetricChip(label: 'Proj Till', value: fmtLs(projSupply)),
+            MetricChip(label: 'Proj Från', value: fmtLs(projExhaust)),
+            MetricChip(label: 'Mätt Till', value: fmtLs(measSupply)),
+            MetricChip(label: 'Mätt Från', value: fmtLs(measExhaust)),
           ],
         ),
-        const SizedBox(height: 10),
-
-        // Optional: keep delta chip, it's very useful
-        MetricChip(
-          label: 'Över/undertryck',
-          value:
-              '${summary.deltaMeasured >= 0 ? '+' : ''}${summary.deltaMeasured.toStringAsFixed(1)} l/s',
-        ),
         const SizedBox(height: 12),
-        if (supplyVsProj != null) ...[
-          Text(
-            'Till (mätt vs proj): ${fmtPct(supplyVsProj)}',
-            style: TextStyle(color: Theme.of(context).colorScheme.outline),
-          ),
-          const SizedBox(height: 6),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              value: (supplyVsProj / 100.0).clamp(0.0, 1.5),
-              minHeight: 10,
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            MetricChip(label: 'Proj balans', value: fmtPct(projBal)),
+            MetricChip(label: 'Mätt balans', value: fmtPct(measBal)),
+            MetricChip(label: 'Till av proj', value: fmtPct(supplyVsProj)),
+            MetricChip(label: 'Från av proj', value: fmtPct(exhaustVsProj)),
+            MetricChip(
+              label: 'Δ Till–Från (mätt)',
+              value: '${delta >= 0 ? '+' : ''}${delta.toStringAsFixed(1)} l/s',
             ),
-          ),
-          const SizedBox(height: 10),
-        ],
-        if (exhaustVsProj != null) ...[
-          Text(
-            'Från (mätt vs proj): ${fmtPct(exhaustVsProj)}',
-            style: TextStyle(color: Theme.of(context).colorScheme.outline),
-          ),
-          const SizedBox(height: 6),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              value: (exhaustVsProj / 100.0).clamp(0.0, 1.5),
-              minHeight: 10,
-            ),
-          ),
-        ],
-        const SizedBox(height: 10),
+          ],
+        ),
       ],
     );
   }

@@ -6,25 +6,24 @@ part 'measurement_point.g.dart';
 enum AirType { supply, exhaust }
 
 @freezed
-@JsonSerializable(explicitToJson: true)
 class MeasurementPoint with _$MeasurementPoint {
   const factory MeasurementPoint({
     required String id,
     required String label,
     required AirType airType,
 
-    // Projected
-    required double projectedBaseLs,
+    // ✅ Projected (base can be null for boost-only points)
+    double? projectedBaseLs,
     double? projectedBoostLs,
 
-    // Measured
+    // ✅ Measured
     double? measuredBaseLs,
     double? measuredBoostLs,
 
     @Default(10.0) double tolerancePct,
     String? notes,
 
-    // Optional “edit-only” extra fields
+    // Optional extra fields
     double? pressurePa,
     double? kFactor,
     String? setting,
