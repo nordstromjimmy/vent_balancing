@@ -26,7 +26,11 @@ mixin _$MeasurementPoint {
   double get projectedLs => throw _privateConstructorUsedError;
   double? get measuredLs => throw _privateConstructorUsedError;
   double get tolerancePct => throw _privateConstructorUsedError;
-  String? get notes => throw _privateConstructorUsedError;
+  String? get notes =>
+      throw _privateConstructorUsedError; // New optional fields:
+  double? get pressurePa => throw _privateConstructorUsedError; // Tryck (Pa)
+  double? get kFactor => throw _privateConstructorUsedError; // K-faktor
+  String? get setting => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -47,7 +51,10 @@ abstract class $MeasurementPointCopyWith<$Res> {
       double projectedLs,
       double? measuredLs,
       double tolerancePct,
-      String? notes});
+      String? notes,
+      double? pressurePa,
+      double? kFactor,
+      String? setting});
 }
 
 /// @nodoc
@@ -70,6 +77,9 @@ class _$MeasurementPointCopyWithImpl<$Res, $Val extends MeasurementPoint>
     Object? measuredLs = freezed,
     Object? tolerancePct = null,
     Object? notes = freezed,
+    Object? pressurePa = freezed,
+    Object? kFactor = freezed,
+    Object? setting = freezed,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -100,6 +110,18 @@ class _$MeasurementPointCopyWithImpl<$Res, $Val extends MeasurementPoint>
           ? _value.notes
           : notes // ignore: cast_nullable_to_non_nullable
               as String?,
+      pressurePa: freezed == pressurePa
+          ? _value.pressurePa
+          : pressurePa // ignore: cast_nullable_to_non_nullable
+              as double?,
+      kFactor: freezed == kFactor
+          ? _value.kFactor
+          : kFactor // ignore: cast_nullable_to_non_nullable
+              as double?,
+      setting: freezed == setting
+          ? _value.setting
+          : setting // ignore: cast_nullable_to_non_nullable
+              as String?,
     ) as $Val);
   }
 }
@@ -119,7 +141,10 @@ abstract class _$$MeasurementPointImplCopyWith<$Res>
       double projectedLs,
       double? measuredLs,
       double tolerancePct,
-      String? notes});
+      String? notes,
+      double? pressurePa,
+      double? kFactor,
+      String? setting});
 }
 
 /// @nodoc
@@ -140,6 +165,9 @@ class __$$MeasurementPointImplCopyWithImpl<$Res>
     Object? measuredLs = freezed,
     Object? tolerancePct = null,
     Object? notes = freezed,
+    Object? pressurePa = freezed,
+    Object? kFactor = freezed,
+    Object? setting = freezed,
   }) {
     return _then(_$MeasurementPointImpl(
       id: null == id
@@ -170,6 +198,18 @@ class __$$MeasurementPointImplCopyWithImpl<$Res>
           ? _value.notes
           : notes // ignore: cast_nullable_to_non_nullable
               as String?,
+      pressurePa: freezed == pressurePa
+          ? _value.pressurePa
+          : pressurePa // ignore: cast_nullable_to_non_nullable
+              as double?,
+      kFactor: freezed == kFactor
+          ? _value.kFactor
+          : kFactor // ignore: cast_nullable_to_non_nullable
+              as double?,
+      setting: freezed == setting
+          ? _value.setting
+          : setting // ignore: cast_nullable_to_non_nullable
+              as String?,
     ));
   }
 }
@@ -184,7 +224,10 @@ class _$MeasurementPointImpl implements _MeasurementPoint {
       required this.projectedLs,
       this.measuredLs,
       this.tolerancePct = 10.0,
-      this.notes});
+      this.notes,
+      this.pressurePa,
+      this.kFactor,
+      this.setting});
 
   factory _$MeasurementPointImpl.fromJson(Map<String, dynamic> json) =>
       _$$MeasurementPointImplFromJson(json);
@@ -204,10 +247,19 @@ class _$MeasurementPointImpl implements _MeasurementPoint {
   final double tolerancePct;
   @override
   final String? notes;
+// New optional fields:
+  @override
+  final double? pressurePa;
+// Tryck (Pa)
+  @override
+  final double? kFactor;
+// K-faktor
+  @override
+  final String? setting;
 
   @override
   String toString() {
-    return 'MeasurementPoint(id: $id, label: $label, airType: $airType, projectedLs: $projectedLs, measuredLs: $measuredLs, tolerancePct: $tolerancePct, notes: $notes)';
+    return 'MeasurementPoint(id: $id, label: $label, airType: $airType, projectedLs: $projectedLs, measuredLs: $measuredLs, tolerancePct: $tolerancePct, notes: $notes, pressurePa: $pressurePa, kFactor: $kFactor, setting: $setting)';
   }
 
   @override
@@ -224,13 +276,17 @@ class _$MeasurementPointImpl implements _MeasurementPoint {
                 other.measuredLs == measuredLs) &&
             (identical(other.tolerancePct, tolerancePct) ||
                 other.tolerancePct == tolerancePct) &&
-            (identical(other.notes, notes) || other.notes == notes));
+            (identical(other.notes, notes) || other.notes == notes) &&
+            (identical(other.pressurePa, pressurePa) ||
+                other.pressurePa == pressurePa) &&
+            (identical(other.kFactor, kFactor) || other.kFactor == kFactor) &&
+            (identical(other.setting, setting) || other.setting == setting));
   }
 
   @JsonKey(ignore: true)
   @override
   int get hashCode => Object.hash(runtimeType, id, label, airType, projectedLs,
-      measuredLs, tolerancePct, notes);
+      measuredLs, tolerancePct, notes, pressurePa, kFactor, setting);
 
   @JsonKey(ignore: true)
   @override
@@ -255,7 +311,10 @@ abstract class _MeasurementPoint implements MeasurementPoint {
       required final double projectedLs,
       final double? measuredLs,
       final double tolerancePct,
-      final String? notes}) = _$MeasurementPointImpl;
+      final String? notes,
+      final double? pressurePa,
+      final double? kFactor,
+      final String? setting}) = _$MeasurementPointImpl;
 
   factory _MeasurementPoint.fromJson(Map<String, dynamic> json) =
       _$MeasurementPointImpl.fromJson;
@@ -274,6 +333,12 @@ abstract class _MeasurementPoint implements MeasurementPoint {
   double get tolerancePct;
   @override
   String? get notes;
+  @override // New optional fields:
+  double? get pressurePa;
+  @override // Tryck (Pa)
+  double? get kFactor;
+  @override // K-faktor
+  String? get setting;
   @override
   @JsonKey(ignore: true)
   _$$MeasurementPointImplCopyWith<_$MeasurementPointImpl> get copyWith =>

@@ -20,6 +20,10 @@ class _EditMeasurementPointDialogState
   late final TextEditingController _measured;
   late AirType _airType;
 
+  late final TextEditingController _pressure;
+  late final TextEditingController _kFactor;
+  late final TextEditingController _setting;
+
   @override
   void initState() {
     super.initState();
@@ -30,6 +34,13 @@ class _EditMeasurementPointDialogState
       text: p.measuredLs?.toStringAsFixed(1) ?? '',
     );
     _airType = p.airType;
+    _pressure = TextEditingController(
+      text: widget.point.pressurePa?.toStringAsFixed(0) ?? '',
+    );
+    _kFactor = TextEditingController(
+      text: widget.point.kFactor?.toStringAsFixed(2) ?? '',
+    );
+    _setting = TextEditingController(text: widget.point.setting ?? '');
   }
 
   @override
@@ -37,6 +48,9 @@ class _EditMeasurementPointDialogState
     _label.dispose();
     _projected.dispose();
     _measured.dispose();
+    _pressure.dispose();
+    _kFactor.dispose();
+    _setting.dispose();
     super.dispose();
   }
 
@@ -51,6 +65,10 @@ class _EditMeasurementPointDialogState
     final projected = _parseDouble(_projected.text);
     final measured = _parseDouble(_measured.text);
 
+    final pressure = _parseDouble(_pressure.text);
+    final kFactor = _parseDouble(_kFactor.text);
+    final setting = _setting.text.trim();
+
     if (label.isEmpty) return;
     if (projected == null || projected <= 0) return;
 
@@ -61,6 +79,9 @@ class _EditMeasurementPointDialogState
         projectedLs: projected,
         measuredLs: measured,
         airType: _airType,
+        pressurePa: pressure,
+        kFactor: kFactor,
+        setting: setting.isEmpty ? null : setting,
       ),
     );
   }
@@ -79,7 +100,7 @@ class _EditMeasurementPointDialogState
                 labelText: 'Etikett',
                 hintText: 'e.x Rum 102 / Tilluft T1',
               ),
-              autofocus: true,
+              autofocus: false,
             ),
             const SizedBox(height: 12),
             TextField(
@@ -111,6 +132,43 @@ class _EditMeasurementPointDialogState
               ],
               selected: {_airType},
               onSelectionChanged: (s) => setState(() => _airType = s.first),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _pressure,
+              decoration: const InputDecoration(
+                labelText: 'Tryck (Pa)',
+                hintText: 't.ex. 45',
+              ),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9.,-]')),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _kFactor,
+              decoration: const InputDecoration(
+                labelText: 'K-faktor',
+                hintText: 't.ex. 1.25',
+              ),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9.,-]')),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _setting,
+              decoration: const InputDecoration(
+                labelText: 'Inställning',
+                hintText: 't.ex. +6, 0, 4',
+              ),
+              textInputAction: TextInputAction.done,
             ),
           ],
         ),

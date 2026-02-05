@@ -7,8 +7,80 @@ import '../domain/flow_eval.dart';
 import '../domain/measurement_point.dart';
 import 'project_editor_page.dart';
 
-class OverviewTab extends ConsumerWidget {
-  const OverviewTab({
+class SystemSummary {
+  final double projectedSupply;
+  final double projectedExhaust;
+  final double measuredSupply;
+  final double measuredExhaust;
+  final int measuredCount;
+  final int totalCount;
+
+  const SystemSummary({
+    required this.projectedSupply,
+    required this.projectedExhaust,
+    required this.measuredSupply,
+    required this.measuredExhaust,
+    required this.measuredCount,
+    required this.totalCount,
+  });
+
+  double? _balancePct(double a, double b) {
+    if (a <= 0 || b <= 0) return null;
+    final ratio = (a < b) ? (a / b) : (b / a);
+    return ratio * 100.0;
+  }
+
+  /// Balanced between supply and exhaust (DESIGN)
+  double? get projectedBalancePct =>
+      _balancePct(projectedSupply, projectedExhaust);
+
+  /// Balanced between supply and exhaust (MEASURED)
+  double? get measuredBalancePct =>
+      _balancePct(measuredSupply, measuredExhaust);
+
+  /// Measured supply as % of projected supply
+  double? get supplyOfProjectedPct {
+    if (projectedSupply <= 0) return null;
+    return (measuredSupply / projectedSupply) * 100.0;
+  }
+
+  /// Measured exhaust as % of projected exhaust
+  double? get exhaustOfProjectedPct {
+    if (projectedExhaust <= 0) return null;
+    return (measuredExhaust / projectedExhaust) * 100.0;
+  }
+
+  /// Signed difference (supply - exhaust), measured totals
+  double get deltaMeasured => measuredSupply - measuredExhaust;
+}
+
+SystemSummary buildSystemSummary(List<MeasurementPoint> points) {
+  double ps = 0, pe = 0, ms = 0, me = 0;
+  int measuredCount = 0;
+
+  for (final p in points) {
+    if (p.airType == AirType.supply) {
+      ps += p.projectedLs;
+      ms += (p.measuredLs ?? 0);
+    } else {
+      pe += p.projectedLs;
+      me += (p.measuredLs ?? 0);
+    }
+    if (p.measuredLs != null) measuredCount++;
+  }
+
+  return SystemSummary(
+    projectedSupply: ps,
+    projectedExhaust: pe,
+    measuredSupply: ms,
+    measuredExhaust: me,
+    measuredCount: measuredCount,
+    totalCount: points.length,
+  );
+}
+
+class OverviewPage extends ConsumerStatefulWidget {
+  const OverviewPage({
     super.key,
     required this.projectId,
     required this.filter,
@@ -24,14 +96,21 @@ class OverviewTab extends ConsumerWidget {
   final ValueChanged<OverviewSort> onSortChanged;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<OverviewPage> createState() => _OverviewPageState();
+}
+
+class _OverviewPageState extends ConsumerState<OverviewPage> {
+  bool _summaryExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
     final projectsAsync = ref.watch(projectsControllerProvider);
 
     return projectsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, st) => Center(child: Text('Error: $e')),
       data: (projects) {
-        final p = projects.firstWhere((x) => x.id == projectId);
+        final p = projects.firstWhere((x) => x.id == widget.projectId);
 
         final items = p.points.map((pt) {
           final eval = FlowEval(
@@ -39,12 +118,14 @@ class OverviewTab extends ConsumerWidget {
             measured: pt.measuredLs,
             tolerancePct: pt.tolerancePct,
           );
-          return (pt: pt, eval: eval); // named record
+          return (pt: pt, eval: eval);
         }).toList();
+
+        final summary = buildSystemSummary(p.points);
 
         bool include(({MeasurementPoint pt, FlowEval eval}) item) {
           final status = item.eval.status;
-          return switch (filter) {
+          return switch (widget.filter) {
             OverviewFilter.all => true,
             OverviewFilter.needsWork =>
               status == FlowStatus.warn ||
@@ -58,7 +139,7 @@ class OverviewTab extends ConsumerWidget {
 
         final filtered = items.where(include).toList();
 
-        if (sort == OverviewSort.label) {
+        if (widget.sort == OverviewSort.label) {
           filtered.sort(
             (a, b) =>
                 a.pt.label.toLowerCase().compareTo(b.pt.label.toLowerCase()),
@@ -84,6 +165,7 @@ class OverviewTab extends ConsumerWidget {
 
         return Column(
           children: [
+            // Header: chips + filter/sort
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
               child: Column(
@@ -104,7 +186,7 @@ class OverviewTab extends ConsumerWidget {
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<OverviewFilter>(
-                          initialValue: filter,
+                          initialValue: widget.filter,
                           isExpanded: true,
                           decoration: const InputDecoration(
                             labelText: 'Filter',
@@ -135,17 +217,17 @@ class OverviewTab extends ConsumerWidget {
                             ),
                           ],
                           onChanged: (v) {
-                            if (v != null) onFilterChanged(v);
+                            if (v != null) widget.onFilterChanged(v);
                           },
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: DropdownButtonFormField<OverviewSort>(
-                          initialValue: sort,
+                          initialValue: widget.sort,
                           isExpanded: true,
                           decoration: const InputDecoration(
-                            labelText: 'Sort',
+                            labelText: 'Sortera',
                             border: OutlineInputBorder(),
                             isDense: true,
                           ),
@@ -166,7 +248,7 @@ class OverviewTab extends ConsumerWidget {
                             ),
                           ],
                           onChanged: (v) {
-                            if (v != null) onSortChanged(v);
+                            if (v != null) widget.onSortChanged(v);
                           },
                         ),
                       ),
@@ -175,7 +257,37 @@ class OverviewTab extends ConsumerWidget {
                 ],
               ),
             ),
+
+            // Collapsible summary card
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Card(
+                child: ExpansionTile(
+                  initiallyExpanded: _summaryExpanded,
+                  onExpansionChanged: (v) =>
+                      setState(() => _summaryExpanded = v),
+                  tilePadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                  title: const Text(
+                    'Systemöversikt',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  subtitle: Text(
+                    '${summary.measuredCount}/${summary.totalCount} mätta • '
+                    'Proj balans: ${summary.projectedBalancePct == null ? '—' : '${summary.projectedBalancePct!.toStringAsFixed(0)}%'} • '
+                    'Mätt balans: ${summary.measuredBalancePct == null ? '—' : '${summary.measuredBalancePct!.toStringAsFixed(0)}%'}',
+                  ),
+                  children: [SystemSummaryCardContent(summary: summary)],
+                ),
+              ),
+            ),
+
             const Divider(height: 1),
+
+            // List takes remaining space
             Expanded(
               child: filtered.isEmpty
                   ? const Center(
@@ -190,7 +302,7 @@ class OverviewTab extends ConsumerWidget {
                   : ListView.separated(
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
                       itemCount: filtered.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      separatorBuilder: (_, _) => const SizedBox(height: 10),
                       itemBuilder: (context, i) {
                         final pt = filtered[i].pt;
                         final eval = filtered[i].eval;
@@ -223,6 +335,104 @@ class OverviewTab extends ConsumerWidget {
           ],
         );
       },
+    );
+  }
+}
+
+class SystemSummaryCardContent extends StatelessWidget {
+  const SystemSummaryCardContent({super.key, required this.summary});
+  final SystemSummary summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final projBal = summary.projectedBalancePct;
+    final measBal = summary.measuredBalancePct;
+    /*     final delta = summary.deltaMeasured;
+
+    final balanceText = projBal == null
+        ? '—'
+        : '${projBal.toStringAsFixed(0)}%';
+    final deltaText = delta == 0
+        ? '0.0'
+        : '${delta > 0 ? '+' : ''}${delta.toStringAsFixed(1)}';
+
+    final bal01 = (projBal == null) ? null : (projBal / 100.0).clamp(0.0, 1.0); */
+
+    final supplyVsProj = summary.supplyOfProjectedPct;
+    final exhaustVsProj = summary.exhaustOfProjectedPct;
+
+    String fmtPct(double? v) => v == null ? '—' : '${v.toStringAsFixed(0)}%';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            MetricChip(label: 'Proj. Balans', value: fmtPct(projBal)),
+            MetricChip(label: 'Mätt Balans', value: fmtPct(measBal)),
+            MetricChip(label: 'TL av proj', value: fmtPct(supplyVsProj)),
+            MetricChip(label: 'FL av proj', value: fmtPct(exhaustVsProj)),
+          ],
+        ),
+        const SizedBox(height: 10),
+
+        // Optional: keep delta chip, it's very useful
+        MetricChip(
+          label: 'Över/undertryck',
+          value:
+              '${summary.deltaMeasured >= 0 ? '+' : ''}${summary.deltaMeasured.toStringAsFixed(1)} l/s',
+        ),
+        const SizedBox(height: 12),
+        if (supplyVsProj != null) ...[
+          Text(
+            'Till (mätt vs proj): ${fmtPct(supplyVsProj)}',
+            style: TextStyle(color: Theme.of(context).colorScheme.outline),
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: (supplyVsProj / 100.0).clamp(0.0, 1.5),
+              minHeight: 10,
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
+        if (exhaustVsProj != null) ...[
+          Text(
+            'Från (mätt vs proj): ${fmtPct(exhaustVsProj)}',
+            style: TextStyle(color: Theme.of(context).colorScheme.outline),
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: (exhaustVsProj / 100.0).clamp(0.0, 1.5),
+              minHeight: 10,
+            ),
+          ),
+        ],
+        const SizedBox(height: 10),
+
+        /*         if (bal01 != null) ...[
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(value: bal01, minHeight: 10),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '100% = perfekt balans mellan till- och frånluft (mätt).',
+            style: TextStyle(color: Theme.of(context).colorScheme.outline),
+          ),
+        ] else ...[
+          Text(
+            'Balans visas när både till- och frånluft har mätvärden.',
+            style: TextStyle(color: Theme.of(context).colorScheme.outline),
+          ),
+        ], */
+      ],
     );
   }
 }

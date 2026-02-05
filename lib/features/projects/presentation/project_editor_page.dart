@@ -406,7 +406,7 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage>
             controller: _tabs,
             children: [
               _MeasureTab(projectId: p.id),
-              OverviewTab(
+              OverviewPage(
                 projectId: p.id,
                 filter: _filter,
                 sort: _sort,
@@ -457,6 +457,18 @@ class _MeasureTab extends ConsumerWidget {
           separatorBuilder: (_, _) => const SizedBox(height: 10),
           itemBuilder: (context, i) {
             final pt = p.points[i];
+            final meta = <String>[];
+            if (pt.pressurePa != null) {
+              meta.add('Pa ${pt.pressurePa!.toStringAsFixed(0)}');
+            }
+            if (pt.kFactor != null) {
+              meta.add('K ${pt.kFactor!.toStringAsFixed(2)}');
+            }
+            if (pt.setting != null && pt.setting!.isNotEmpty) {
+              meta.add('Inst ${pt.setting!}');
+            }
+
+            final metaText = meta.isEmpty ? null : meta.join(' • ');
             final eval = FlowEval(
               projected: pt.projectedLs,
               measured: pt.measuredLs,
@@ -554,6 +566,15 @@ class _MeasureTab extends ConsumerWidget {
                                 .updateMeasured(projectId, pt.id, val);
                           },
                         ),
+                        if (metaText != null) ...[
+                          const SizedBox(height: 6),
+                          Text(
+                            metaText,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.outline,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),

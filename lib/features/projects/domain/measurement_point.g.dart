@@ -18,6 +18,9 @@ _$MeasurementPointImpl _$$MeasurementPointImplFromJson(
   measuredLs: (json['measuredLs'] as num?)?.toDouble(),
   tolerancePct: (json['tolerancePct'] as num?)?.toDouble() ?? 10.0,
   notes: json['notes'] as String?,
+  pressurePa: (json['pressurePa'] as num?)?.toDouble(),
+  kFactor: (json['kFactor'] as num?)?.toDouble(),
+  setting: json['setting'] as String?,
 );
 
 Map<String, dynamic> _$$MeasurementPointImplToJson(
@@ -30,4 +33,7 @@ Map<String, dynamic> _$$MeasurementPointImplToJson(
   'measuredLs': instance.measuredLs,
   'tolerancePct': instance.tolerancePct,
   'notes': instance.notes,
+  'pressurePa': instance.pressurePa,
+  'kFactor': instance.kFactor,
+  'setting': instance.setting,
 };
