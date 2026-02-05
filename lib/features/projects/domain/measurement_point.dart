@@ -12,15 +12,22 @@ class MeasurementPoint with _$MeasurementPoint {
     required String id,
     required String label,
     required AirType airType,
-    required double projectedLs,
-    double? measuredLs,
+
+    // Projected
+    required double projectedBaseLs,
+    double? projectedBoostLs,
+
+    // Measured
+    double? measuredBaseLs,
+    double? measuredBoostLs,
+
     @Default(10.0) double tolerancePct,
     String? notes,
 
-    // New optional fields:
-    double? pressurePa, // Tryck (Pa)
-    double? kFactor, // K-faktor
-    String? setting, // Inställning (often text like "2.5 varv" / "spjäll 35%")
+    // Optional “edit-only” extra fields
+    double? pressurePa,
+    double? kFactor,
+    String? setting,
   }) = _MeasurementPoint;
 
   factory MeasurementPoint.fromJson(Map<String, dynamic> json) =>

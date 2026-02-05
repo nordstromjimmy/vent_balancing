@@ -22,14 +22,17 @@ MeasurementPoint _$MeasurementPointFromJson(Map<String, dynamic> json) {
 mixin _$MeasurementPoint {
   String get id => throw _privateConstructorUsedError;
   String get label => throw _privateConstructorUsedError;
-  AirType get airType => throw _privateConstructorUsedError;
-  double get projectedLs => throw _privateConstructorUsedError;
-  double? get measuredLs => throw _privateConstructorUsedError;
+  AirType get airType => throw _privateConstructorUsedError; // Projected
+  double get projectedBaseLs => throw _privateConstructorUsedError;
+  double? get projectedBoostLs =>
+      throw _privateConstructorUsedError; // Measured
+  double? get measuredBaseLs => throw _privateConstructorUsedError;
+  double? get measuredBoostLs => throw _privateConstructorUsedError;
   double get tolerancePct => throw _privateConstructorUsedError;
   String? get notes =>
-      throw _privateConstructorUsedError; // New optional fields:
-  double? get pressurePa => throw _privateConstructorUsedError; // Tryck (Pa)
-  double? get kFactor => throw _privateConstructorUsedError; // K-faktor
+      throw _privateConstructorUsedError; // Optional “edit-only” extra fields
+  double? get pressurePa => throw _privateConstructorUsedError;
+  double? get kFactor => throw _privateConstructorUsedError;
   String? get setting => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -48,8 +51,10 @@ abstract class $MeasurementPointCopyWith<$Res> {
       {String id,
       String label,
       AirType airType,
-      double projectedLs,
-      double? measuredLs,
+      double projectedBaseLs,
+      double? projectedBoostLs,
+      double? measuredBaseLs,
+      double? measuredBoostLs,
       double tolerancePct,
       String? notes,
       double? pressurePa,
@@ -73,8 +78,10 @@ class _$MeasurementPointCopyWithImpl<$Res, $Val extends MeasurementPoint>
     Object? id = null,
     Object? label = null,
     Object? airType = null,
-    Object? projectedLs = null,
-    Object? measuredLs = freezed,
+    Object? projectedBaseLs = null,
+    Object? projectedBoostLs = freezed,
+    Object? measuredBaseLs = freezed,
+    Object? measuredBoostLs = freezed,
     Object? tolerancePct = null,
     Object? notes = freezed,
     Object? pressurePa = freezed,
@@ -94,13 +101,21 @@ class _$MeasurementPointCopyWithImpl<$Res, $Val extends MeasurementPoint>
           ? _value.airType
           : airType // ignore: cast_nullable_to_non_nullable
               as AirType,
-      projectedLs: null == projectedLs
-          ? _value.projectedLs
-          : projectedLs // ignore: cast_nullable_to_non_nullable
+      projectedBaseLs: null == projectedBaseLs
+          ? _value.projectedBaseLs
+          : projectedBaseLs // ignore: cast_nullable_to_non_nullable
               as double,
-      measuredLs: freezed == measuredLs
-          ? _value.measuredLs
-          : measuredLs // ignore: cast_nullable_to_non_nullable
+      projectedBoostLs: freezed == projectedBoostLs
+          ? _value.projectedBoostLs
+          : projectedBoostLs // ignore: cast_nullable_to_non_nullable
+              as double?,
+      measuredBaseLs: freezed == measuredBaseLs
+          ? _value.measuredBaseLs
+          : measuredBaseLs // ignore: cast_nullable_to_non_nullable
+              as double?,
+      measuredBoostLs: freezed == measuredBoostLs
+          ? _value.measuredBoostLs
+          : measuredBoostLs // ignore: cast_nullable_to_non_nullable
               as double?,
       tolerancePct: null == tolerancePct
           ? _value.tolerancePct
@@ -138,8 +153,10 @@ abstract class _$$MeasurementPointImplCopyWith<$Res>
       {String id,
       String label,
       AirType airType,
-      double projectedLs,
-      double? measuredLs,
+      double projectedBaseLs,
+      double? projectedBoostLs,
+      double? measuredBaseLs,
+      double? measuredBoostLs,
       double tolerancePct,
       String? notes,
       double? pressurePa,
@@ -161,8 +178,10 @@ class __$$MeasurementPointImplCopyWithImpl<$Res>
     Object? id = null,
     Object? label = null,
     Object? airType = null,
-    Object? projectedLs = null,
-    Object? measuredLs = freezed,
+    Object? projectedBaseLs = null,
+    Object? projectedBoostLs = freezed,
+    Object? measuredBaseLs = freezed,
+    Object? measuredBoostLs = freezed,
     Object? tolerancePct = null,
     Object? notes = freezed,
     Object? pressurePa = freezed,
@@ -182,13 +201,21 @@ class __$$MeasurementPointImplCopyWithImpl<$Res>
           ? _value.airType
           : airType // ignore: cast_nullable_to_non_nullable
               as AirType,
-      projectedLs: null == projectedLs
-          ? _value.projectedLs
-          : projectedLs // ignore: cast_nullable_to_non_nullable
+      projectedBaseLs: null == projectedBaseLs
+          ? _value.projectedBaseLs
+          : projectedBaseLs // ignore: cast_nullable_to_non_nullable
               as double,
-      measuredLs: freezed == measuredLs
-          ? _value.measuredLs
-          : measuredLs // ignore: cast_nullable_to_non_nullable
+      projectedBoostLs: freezed == projectedBoostLs
+          ? _value.projectedBoostLs
+          : projectedBoostLs // ignore: cast_nullable_to_non_nullable
+              as double?,
+      measuredBaseLs: freezed == measuredBaseLs
+          ? _value.measuredBaseLs
+          : measuredBaseLs // ignore: cast_nullable_to_non_nullable
+              as double?,
+      measuredBoostLs: freezed == measuredBoostLs
+          ? _value.measuredBoostLs
+          : measuredBoostLs // ignore: cast_nullable_to_non_nullable
               as double?,
       tolerancePct: null == tolerancePct
           ? _value.tolerancePct
@@ -221,8 +248,10 @@ class _$MeasurementPointImpl implements _MeasurementPoint {
       {required this.id,
       required this.label,
       required this.airType,
-      required this.projectedLs,
-      this.measuredLs,
+      required this.projectedBaseLs,
+      this.projectedBoostLs,
+      this.measuredBaseLs,
+      this.measuredBoostLs,
       this.tolerancePct = 10.0,
       this.notes,
       this.pressurePa,
@@ -238,28 +267,32 @@ class _$MeasurementPointImpl implements _MeasurementPoint {
   final String label;
   @override
   final AirType airType;
+// Projected
   @override
-  final double projectedLs;
+  final double projectedBaseLs;
   @override
-  final double? measuredLs;
+  final double? projectedBoostLs;
+// Measured
+  @override
+  final double? measuredBaseLs;
+  @override
+  final double? measuredBoostLs;
   @override
   @JsonKey()
   final double tolerancePct;
   @override
   final String? notes;
-// New optional fields:
+// Optional “edit-only” extra fields
   @override
   final double? pressurePa;
-// Tryck (Pa)
   @override
   final double? kFactor;
-// K-faktor
   @override
   final String? setting;
 
   @override
   String toString() {
-    return 'MeasurementPoint(id: $id, label: $label, airType: $airType, projectedLs: $projectedLs, measuredLs: $measuredLs, tolerancePct: $tolerancePct, notes: $notes, pressurePa: $pressurePa, kFactor: $kFactor, setting: $setting)';
+    return 'MeasurementPoint(id: $id, label: $label, airType: $airType, projectedBaseLs: $projectedBaseLs, projectedBoostLs: $projectedBoostLs, measuredBaseLs: $measuredBaseLs, measuredBoostLs: $measuredBoostLs, tolerancePct: $tolerancePct, notes: $notes, pressurePa: $pressurePa, kFactor: $kFactor, setting: $setting)';
   }
 
   @override
@@ -270,10 +303,14 @@ class _$MeasurementPointImpl implements _MeasurementPoint {
             (identical(other.id, id) || other.id == id) &&
             (identical(other.label, label) || other.label == label) &&
             (identical(other.airType, airType) || other.airType == airType) &&
-            (identical(other.projectedLs, projectedLs) ||
-                other.projectedLs == projectedLs) &&
-            (identical(other.measuredLs, measuredLs) ||
-                other.measuredLs == measuredLs) &&
+            (identical(other.projectedBaseLs, projectedBaseLs) ||
+                other.projectedBaseLs == projectedBaseLs) &&
+            (identical(other.projectedBoostLs, projectedBoostLs) ||
+                other.projectedBoostLs == projectedBoostLs) &&
+            (identical(other.measuredBaseLs, measuredBaseLs) ||
+                other.measuredBaseLs == measuredBaseLs) &&
+            (identical(other.measuredBoostLs, measuredBoostLs) ||
+                other.measuredBoostLs == measuredBoostLs) &&
             (identical(other.tolerancePct, tolerancePct) ||
                 other.tolerancePct == tolerancePct) &&
             (identical(other.notes, notes) || other.notes == notes) &&
@@ -285,8 +322,20 @@ class _$MeasurementPointImpl implements _MeasurementPoint {
 
   @JsonKey(ignore: true)
   @override
-  int get hashCode => Object.hash(runtimeType, id, label, airType, projectedLs,
-      measuredLs, tolerancePct, notes, pressurePa, kFactor, setting);
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      label,
+      airType,
+      projectedBaseLs,
+      projectedBoostLs,
+      measuredBaseLs,
+      measuredBoostLs,
+      tolerancePct,
+      notes,
+      pressurePa,
+      kFactor,
+      setting);
 
   @JsonKey(ignore: true)
   @override
@@ -308,8 +357,10 @@ abstract class _MeasurementPoint implements MeasurementPoint {
       {required final String id,
       required final String label,
       required final AirType airType,
-      required final double projectedLs,
-      final double? measuredLs,
+      required final double projectedBaseLs,
+      final double? projectedBoostLs,
+      final double? measuredBaseLs,
+      final double? measuredBoostLs,
       final double tolerancePct,
       final String? notes,
       final double? pressurePa,
@@ -325,19 +376,23 @@ abstract class _MeasurementPoint implements MeasurementPoint {
   String get label;
   @override
   AirType get airType;
+  @override // Projected
+  double get projectedBaseLs;
   @override
-  double get projectedLs;
+  double? get projectedBoostLs;
+  @override // Measured
+  double? get measuredBaseLs;
   @override
-  double? get measuredLs;
+  double? get measuredBoostLs;
   @override
   double get tolerancePct;
   @override
   String? get notes;
-  @override // New optional fields:
+  @override // Optional “edit-only” extra fields
   double? get pressurePa;
-  @override // Tryck (Pa)
+  @override
   double? get kFactor;
-  @override // K-faktor
+  @override
   String? get setting;
   @override
   @JsonKey(ignore: true)

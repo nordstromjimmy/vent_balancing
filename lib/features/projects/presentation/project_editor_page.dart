@@ -151,53 +151,64 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage>
   }
 
   Future<void> _addPointDialog(BuildContext context) async {
-    final uuid = const Uuid();
+    const uuid = Uuid();
 
     final labelController = TextEditingController();
-    final supplyProjectedController = TextEditingController();
-    final exhaustProjectedController = TextEditingController();
+
+    // Base (grund) flows
+    final supplyBaseController = TextEditingController();
+    final exhaustBaseController = TextEditingController();
+
+    // Boost (forcerat) flows
+    final supplyBoostController = TextEditingController();
+    final exhaustBoostController = TextEditingController();
 
     bool includeSupply = true;
     bool includeExhaust = true;
+    bool includeBoost = false;
+
+    double? parseDouble(String s) {
+      final raw = s.trim().replaceAll(',', '.');
+      if (raw.isEmpty) return null;
+      return double.tryParse(raw);
+    }
+
+    InputDecoration dec(String label, String hint) =>
+        InputDecoration(labelText: label, hintText: hint);
+
+    Widget numberField({
+      required String title,
+      required TextEditingController controller,
+      String hint = 't.ex. 25',
+    }) {
+      return TextField(
+        controller: controller,
+        decoration: dec(title, hint),
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        inputFormatters: [
+          FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+        ],
+      );
+    }
 
     final result = await showDialog<List<MeasurementPoint>>(
       context: context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setLocalState) {
-            InputDecoration dec(String label, String hint) =>
-                InputDecoration(labelText: label, hintText: hint);
-
-            Widget projectedField({
-              required String title,
-              required TextEditingController controller,
-            }) {
-              return TextField(
-                controller: controller,
-                decoration: dec(title, 'e.g. 25'),
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-                ],
-              );
-            }
-
             return AlertDialog(
-              title: const Text('Lägg till mätning'),
+              title: const Text('Lägg till mätpunkt'),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     TextField(
                       controller: labelController,
-                      decoration: dec('Rum / Etikett', 'e.x Rum 102'),
-                      autofocus: true,
+                      decoration: dec('Rum / Etikett', 't.ex. Rum 102'),
+                      autofocus: false,
                     ),
                     const SizedBox(height: 12),
 
-                    // Multi-select via FilterChips
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
@@ -216,20 +227,46 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage>
                         ),
                       ],
                     ),
+
                     const SizedBox(height: 12),
 
-                    if (includeSupply)
-                      projectedField(
-                        title: 'Projekterad Tilluft (l/s)',
-                        controller: supplyProjectedController,
-                      ),
-                    if (includeSupply) const SizedBox(height: 12),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Har forcerat flöde'),
+                      value: includeBoost,
+                      onChanged: (v) => setLocalState(() => includeBoost = v),
+                    ),
 
-                    if (includeExhaust)
-                      projectedField(
-                        title: 'Projekterad Frånluft (l/s)',
-                        controller: exhaustProjectedController,
+                    const SizedBox(height: 8),
+
+                    if (includeSupply) ...[
+                      numberField(
+                        title: 'Tilluft – Grund (l/s)',
+                        controller: supplyBaseController,
                       ),
+                      if (includeBoost) ...[
+                        const SizedBox(height: 12),
+                        numberField(
+                          title: 'Tilluft – Forcerat (l/s)',
+                          controller: supplyBoostController,
+                        ),
+                      ],
+                      const SizedBox(height: 12),
+                    ],
+
+                    if (includeExhaust) ...[
+                      numberField(
+                        title: 'Frånluft – Grund (l/s)',
+                        controller: exhaustBaseController,
+                      ),
+                      if (includeBoost) ...[
+                        const SizedBox(height: 12),
+                        numberField(
+                          title: 'Frånluft – Forcerat (l/s)',
+                          controller: exhaustBoostController,
+                        ),
+                      ],
+                    ],
 
                     if (!includeSupply && !includeExhaust)
                       Padding(
@@ -255,36 +292,46 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage>
                     if (baseLabel.isEmpty) return;
                     if (!includeSupply && !includeExhaust) return;
 
-                    double? parse(TextEditingController c) {
-                      final raw = c.text.trim().replaceAll(',', '.');
-                      if (raw.isEmpty) return null;
-                      return double.tryParse(raw);
-                    }
-
                     final created = <MeasurementPoint>[];
 
                     if (includeSupply) {
-                      final v = parse(supplyProjectedController);
-                      if (v == null || v <= 0) return;
+                      final base = parseDouble(supplyBaseController.text);
+                      if (base == null || base <= 0) return;
+
+                      final boost = includeBoost
+                          ? parseDouble(supplyBoostController.text)
+                          : null;
+
+                      if (includeBoost && (boost == null || boost <= 0)) return;
+
                       created.add(
                         MeasurementPoint(
                           id: uuid.v4(),
-                          label: '$baseLabel – Tilluft',
+                          label: baseLabel,
                           airType: AirType.supply,
-                          projectedLs: v,
+                          projectedBaseLs: base,
+                          projectedBoostLs: boost,
                         ),
                       );
                     }
 
                     if (includeExhaust) {
-                      final v = parse(exhaustProjectedController);
-                      if (v == null || v <= 0) return;
+                      final base = parseDouble(exhaustBaseController.text);
+                      if (base == null || base <= 0) return;
+
+                      final boost = includeBoost
+                          ? parseDouble(exhaustBoostController.text)
+                          : null;
+
+                      if (includeBoost && (boost == null || boost <= 0)) return;
+
                       created.add(
                         MeasurementPoint(
                           id: uuid.v4(),
-                          label: '$baseLabel – Frånluft',
-                          airType: AirType.exhaust,
-                          projectedLs: v,
+                          label: baseLabel,
+                          airType: AirType.exhaust, // ✅ important fix
+                          projectedBaseLs: base,
+                          projectedBoostLs: boost,
                         ),
                       );
                     }
@@ -302,7 +349,6 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage>
 
     if (result == null || result.isEmpty) return;
 
-    // Add in one write
     await ref
         .read(projectsControllerProvider.notifier)
         .addPoints(widget.projectId, result);
@@ -470,8 +516,8 @@ class _MeasureTab extends ConsumerWidget {
 
             final metaText = meta.isEmpty ? null : meta.join(' • ');
             final eval = FlowEval(
-              projected: pt.projectedLs,
-              measured: pt.measuredLs,
+              projected: pt.projectedBaseLs,
+              measured: pt.measuredBaseLs,
               tolerancePct: pt.tolerancePct,
             );
 
@@ -528,24 +574,8 @@ class _MeasureTab extends ConsumerWidget {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            RatioBadge(eval: eval),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            MetricChip(
-                              label: 'Projekterat',
-                              value: '${pt.projectedLs.toStringAsFixed(1)} l/s',
-                            ),
-                            const SizedBox(width: 8),
-                            MetricChip(
-                              label: 'Uppmätt',
-                              value: pt.measuredLs == null
-                                  ? '—'
-                                  : '${pt.measuredLs!.toStringAsFixed(1)} l/s',
-                            ),
-                            const Spacer(),
+
+                            // ✅ Air type moved next to label
                             Text(
                               pt.airType == AirType.supply
                                   ? 'Tilluft'
@@ -555,17 +585,59 @@ class _MeasureTab extends ConsumerWidget {
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
+
+                            const SizedBox(width: 10),
+                            RatioBadge(eval: eval),
                           ],
                         ),
+
+                        const SizedBox(height: 10),
+
+                        // ✅ Wrap can only contain non-flex children (no Spacer/Expanded)
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            MetricChip(
+                              label: 'Grund proj',
+                              value:
+                                  '${pt.projectedBaseLs.toStringAsFixed(1)} l/s',
+                            ),
+                            MetricChip(
+                              label: 'Grund mätt',
+                              value: pt.measuredBaseLs == null
+                                  ? '—'
+                                  : '${pt.measuredBaseLs!.toStringAsFixed(1)} l/s',
+                            ),
+                            if (pt.projectedBoostLs != null ||
+                                pt.measuredBoostLs != null) ...[
+                              MetricChip(
+                                label: 'Forc proj',
+                                value: pt.projectedBoostLs == null
+                                    ? '—'
+                                    : '${pt.projectedBoostLs!.toStringAsFixed(1)} l/s',
+                              ),
+                              MetricChip(
+                                label: 'Forc mätt',
+                                value: pt.measuredBoostLs == null
+                                    ? '—'
+                                    : '${pt.measuredBoostLs!.toStringAsFixed(1)} l/s',
+                              ),
+                            ],
+                          ],
+                        ),
+
                         const SizedBox(height: 12),
+
                         _MeasuredInputRow(
-                          initialValue: pt.measuredLs,
+                          initialValue: pt.measuredBaseLs,
                           onChanged: (val) {
                             ref
                                 .read(projectsControllerProvider.notifier)
                                 .updateMeasured(projectId, pt.id, val);
                           },
                         ),
+
                         if (metaText != null) ...[
                           const SizedBox(height: 6),
                           Text(

@@ -16,7 +16,7 @@ Future<String?> showTextInputDialog({
         title: Text(title),
         content: TextField(
           controller: c,
-          autofocus: true,
+          autofocus: false,
           decoration: InputDecoration(labelText: labelText, hintText: hintText),
           onSubmitted: (_) => Navigator.pop(context, c.text.trim()),
         ),

@@ -24,14 +24,24 @@ class _EditMeasurementPointDialogState
   late final TextEditingController _kFactor;
   late final TextEditingController _setting;
 
+  late final TextEditingController _projectedBase;
+  late final TextEditingController _measuredBase;
+
+  late final TextEditingController _projectedBoost;
+  late final TextEditingController _measuredBoost;
+
+  bool _hasBoost = false;
+
   @override
   void initState() {
     super.initState();
     final p = widget.point;
     _label = TextEditingController(text: p.label);
-    _projected = TextEditingController(text: p.projectedLs.toStringAsFixed(1));
+    _projected = TextEditingController(
+      text: p.projectedBaseLs.toStringAsFixed(1),
+    );
     _measured = TextEditingController(
-      text: p.measuredLs?.toStringAsFixed(1) ?? '',
+      text: p.measuredBaseLs?.toStringAsFixed(1) ?? '',
     );
     _airType = p.airType;
     _pressure = TextEditingController(
@@ -41,6 +51,22 @@ class _EditMeasurementPointDialogState
       text: widget.point.kFactor?.toStringAsFixed(2) ?? '',
     );
     _setting = TextEditingController(text: widget.point.setting ?? '');
+
+    _projectedBase = TextEditingController(
+      text: p.projectedBaseLs.toStringAsFixed(1),
+    );
+    _measuredBase = TextEditingController(
+      text: p.measuredBaseLs?.toStringAsFixed(1) ?? '',
+    );
+
+    _hasBoost = p.projectedBoostLs != null;
+
+    _projectedBoost = TextEditingController(
+      text: p.projectedBoostLs?.toStringAsFixed(1) ?? '',
+    );
+    _measuredBoost = TextEditingController(
+      text: p.measuredBoostLs?.toStringAsFixed(1) ?? '',
+    );
   }
 
   @override
@@ -51,6 +77,10 @@ class _EditMeasurementPointDialogState
     _pressure.dispose();
     _kFactor.dispose();
     _setting.dispose();
+    _projectedBase.dispose();
+    _measuredBase.dispose();
+    _projectedBoost.dispose();
+    _measuredBoost.dispose();
     super.dispose();
   }
 
@@ -63,11 +93,22 @@ class _EditMeasurementPointDialogState
   void _save() {
     final label = _label.text.trim();
     final projected = _parseDouble(_projected.text);
-    final measured = _parseDouble(_measured.text);
 
     final pressure = _parseDouble(_pressure.text);
     final kFactor = _parseDouble(_kFactor.text);
     final setting = _setting.text.trim();
+
+    final projectedBase = _parseDouble(_projectedBase.text);
+    final measuredBase = _parseDouble(_measuredBase.text);
+
+    if (projectedBase == null || projectedBase <= 0) return;
+
+    final projectedBoost = _hasBoost
+        ? _parseDouble(_projectedBoost.text)
+        : null;
+    final measuredBoost = _hasBoost ? _parseDouble(_measuredBoost.text) : null;
+
+    if (_hasBoost && (projectedBoost == null || projectedBoost <= 0)) return;
 
     if (label.isEmpty) return;
     if (projected == null || projected <= 0) return;
@@ -76,12 +117,14 @@ class _EditMeasurementPointDialogState
       context,
       widget.point.copyWith(
         label: label,
-        projectedLs: projected,
-        measuredLs: measured,
-        airType: _airType,
+        projectedBaseLs: projectedBase,
+        measuredBaseLs: measuredBase,
+        projectedBoostLs: projectedBoost,
+        measuredBoostLs: measuredBoost,
         pressurePa: pressure,
         kFactor: kFactor,
         setting: setting.isEmpty ? null : setting,
+        airType: _airType,
       ),
     );
   }
@@ -102,10 +145,11 @@ class _EditMeasurementPointDialogState
               ),
               autofocus: false,
             ),
-            const SizedBox(height: 12),
             TextField(
-              controller: _projected,
-              decoration: const InputDecoration(labelText: 'Projekterat (l/s)'),
+              controller: _projectedBase,
+              decoration: const InputDecoration(
+                labelText: 'Grund – Projekterat (l/s)',
+              ),
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
@@ -115,8 +159,10 @@ class _EditMeasurementPointDialogState
             ),
             const SizedBox(height: 12),
             TextField(
-              controller: _measured,
-              decoration: const InputDecoration(labelText: 'Uppmätt (l/s)'),
+              controller: _measuredBase,
+              decoration: const InputDecoration(
+                labelText: 'Grund – Uppmätt (l/s)',
+              ),
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
@@ -124,6 +170,43 @@ class _EditMeasurementPointDialogState
                 FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
               ],
             ),
+            const SizedBox(height: 12),
+
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Har forcerat flöde'),
+              value: _hasBoost,
+              onChanged: (v) => setState(() => _hasBoost = v),
+            ),
+
+            if (_hasBoost) ...[
+              const SizedBox(height: 12),
+              TextField(
+                controller: _projectedBoost,
+                decoration: const InputDecoration(
+                  labelText: 'Forcerat – Projekterat (l/s)',
+                ),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _measuredBoost,
+                decoration: const InputDecoration(
+                  labelText: 'Forcerat – Uppmätt (l/s)',
+                ),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+                ],
+              ),
+            ],
             const SizedBox(height: 12),
             SegmentedButton<AirType>(
               segments: const [

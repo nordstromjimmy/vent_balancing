@@ -7,6 +7,8 @@ import '../domain/flow_eval.dart';
 import '../domain/measurement_point.dart';
 import 'project_editor_page.dart';
 
+enum FlowMode { base, boost }
+
 class SystemSummary {
   final double projectedSupply;
   final double projectedExhaust;
@@ -60,13 +62,13 @@ SystemSummary buildSystemSummary(List<MeasurementPoint> points) {
 
   for (final p in points) {
     if (p.airType == AirType.supply) {
-      ps += p.projectedLs;
-      ms += (p.measuredLs ?? 0);
+      ps += p.projectedBaseLs;
+      ms += (p.measuredBaseLs ?? 0);
     } else {
-      pe += p.projectedLs;
-      me += (p.measuredLs ?? 0);
+      pe += p.projectedBaseLs;
+      me += (p.measuredBaseLs ?? 0);
     }
-    if (p.measuredLs != null) measuredCount++;
+    if (p.measuredBaseLs != null) measuredCount++;
   }
 
   return SystemSummary(
@@ -114,8 +116,8 @@ class _OverviewPageState extends ConsumerState<OverviewPage> {
 
         final items = p.points.map((pt) {
           final eval = FlowEval(
-            projected: pt.projectedLs,
-            measured: pt.measuredLs,
+            projected: pt.projectedBaseLs,
+            measured: pt.measuredBaseLs,
             tolerancePct: pt.tolerancePct,
           );
           return (pt: pt, eval: eval);
@@ -307,24 +309,54 @@ class _OverviewPageState extends ConsumerState<OverviewPage> {
                         final pt = filtered[i].pt;
                         final eval = filtered[i].eval;
 
-                        final proj = pt.projectedLs;
-                        final meas = pt.measuredLs;
+                        final proj = pt.projectedBaseLs;
+                        final meas = pt.measuredBaseLs;
 
                         final deviation = eval.deviationPct;
                         final deviationText = deviation == null
                             ? '—'
                             : '${deviation >= 0 ? '+' : ''}${deviation.toStringAsFixed(0)}%';
 
+                        final meta = <String>[];
+                        if (pt.pressurePa != null) {
+                          meta.add('Pa ${pt.pressurePa!.toStringAsFixed(0)}');
+                        }
+                        if (pt.kFactor != null) {
+                          meta.add('K ${pt.kFactor!.toStringAsFixed(2)}');
+                        }
+                        if (pt.setting != null && pt.setting!.isNotEmpty) {
+                          meta.add('Inst ${pt.setting!}');
+                        }
+
+                        final metaText = meta.isEmpty ? null : meta.join(' • ');
+
                         return Card(
                           child: ListTile(
+                            isThreeLine: metaText != null,
                             title: Text(
                               pt.label,
                               style: const TextStyle(
                                 fontWeight: FontWeight.w800,
                               ),
                             ),
-                            subtitle: Text(
-                              'Uppmätt ${meas?.toStringAsFixed(1) ?? '—'} / ${proj.toStringAsFixed(1)} l/s • $deviationText',
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Uppmätt ${meas?.toStringAsFixed(1) ?? '—'} / ${proj.toStringAsFixed(1)} l/s • $deviationText',
+                                ),
+                                if (metaText != null) ...[
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    metaText,
+                                    style: TextStyle(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.outline,
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                             trailing: RatioBadge(eval: eval),
                           ),
@@ -347,16 +379,6 @@ class SystemSummaryCardContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final projBal = summary.projectedBalancePct;
     final measBal = summary.measuredBalancePct;
-    /*     final delta = summary.deltaMeasured;
-
-    final balanceText = projBal == null
-        ? '—'
-        : '${projBal.toStringAsFixed(0)}%';
-    final deltaText = delta == 0
-        ? '0.0'
-        : '${delta > 0 ? '+' : ''}${delta.toStringAsFixed(1)}';
-
-    final bal01 = (projBal == null) ? null : (projBal / 100.0).clamp(0.0, 1.0); */
 
     final supplyVsProj = summary.supplyOfProjectedPct;
     final exhaustVsProj = summary.exhaustOfProjectedPct;
@@ -415,23 +437,6 @@ class SystemSummaryCardContent extends StatelessWidget {
           ),
         ],
         const SizedBox(height: 10),
-
-        /*         if (bal01 != null) ...[
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(value: bal01, minHeight: 10),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '100% = perfekt balans mellan till- och frånluft (mätt).',
-            style: TextStyle(color: Theme.of(context).colorScheme.outline),
-          ),
-        ] else ...[
-          Text(
-            'Balans visas när både till- och frånluft har mätvärden.',
-            style: TextStyle(color: Theme.of(context).colorScheme.outline),
-          ),
-        ], */
       ],
     );
   }

@@ -18,7 +18,7 @@ class ProjectsListPage extends ConsumerWidget {
           title: const Text('Nytt projekt'),
           content: TextField(
             controller: textController,
-            autofocus: true,
+            autofocus: false,
             decoration: const InputDecoration(
               labelText: 'Projekt namn',
               hintText: 'e.x Byggnad A – Våning 2',

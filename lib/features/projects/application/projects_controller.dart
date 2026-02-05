@@ -62,7 +62,7 @@ class ProjectsController extends StateNotifier<AsyncValue<List<Project>>> {
 
     final updatedPoints = p.points.map((pt) {
       if (pt.id != pointId) return pt;
-      return pt.copyWith(measuredLs: measured);
+      return pt.copyWith(measuredBaseLs: measured);
     }).toList();
 
     await _repo.upsertProject(
