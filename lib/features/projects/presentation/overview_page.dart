@@ -180,6 +180,33 @@ class _OverviewPageState extends ConsumerState<OverviewPage> {
   Widget build(BuildContext context) {
     final projectsAsync = ref.watch(projectsControllerProvider);
 
+    ({double projected, double? measured, bool usedBoost}) pickEvalValues(
+      MeasurementPoint pt,
+    ) {
+      final hasBase = (pt.projectedBaseLs != null && pt.projectedBaseLs! > 0);
+      final hasBoost =
+          (pt.projectedBoostLs != null && pt.projectedBoostLs! > 0);
+
+      // Prefer base if it exists, otherwise fall back to boost
+      if (hasBase) {
+        return (
+          projected: pt.projectedBaseLs!,
+          measured: pt.measuredBaseLs,
+          usedBoost: false,
+        );
+      }
+      if (hasBoost) {
+        return (
+          projected: pt.projectedBoostLs!,
+          measured: pt.measuredBoostLs,
+          usedBoost: true,
+        );
+      }
+
+      // No projected at all -> eval will be "unknown"
+      return (projected: 0, measured: null, usedBoost: false);
+    }
+
     return projectsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, st) => Center(child: Text('Error: $e')),
@@ -187,17 +214,22 @@ class _OverviewPageState extends ConsumerState<OverviewPage> {
         final p = projects.firstWhere((x) => x.id == widget.projectId);
 
         final items = p.points.map((pt) {
+          final picked = pickEvalValues(pt);
+
           final eval = FlowEval(
-            projected: pt.projectedBaseLs ?? 0,
-            measured: pt.measuredBaseLs,
+            projected: picked.projected,
+            measured: picked.measured,
             tolerancePct: pt.tolerancePct,
           );
-          return (pt: pt, eval: eval);
+
+          return (pt: pt, eval: eval, usedBoost: picked.usedBoost);
         }).toList();
 
         final summary = buildSystemSummary(p.points);
 
-        bool include(({MeasurementPoint pt, FlowEval eval}) item) {
+        bool include(
+          ({MeasurementPoint pt, FlowEval eval, bool usedBoost}) item,
+        ) {
           final status = item.eval.status;
           return switch (widget.filter) {
             OverviewFilter.all => true,
@@ -405,6 +437,8 @@ class _OverviewPageState extends ConsumerState<OverviewPage> {
                         final pt = filtered[i].pt;
                         final eval = filtered[i].eval;
 
+                        final usedBoost = filtered[i].usedBoost;
+
                         final hasBase =
                             (pt.projectedBaseLs != null &&
                                 pt.projectedBaseLs! > 0) ||
@@ -448,11 +482,13 @@ class _OverviewPageState extends ConsumerState<OverviewPage> {
                               children: [
                                 if (hasBase)
                                   Text(
-                                    'Grund: ${fmtLs(pt.measuredBaseLs)} / ${fmtLs(pt.projectedBaseLs)} l/s • $deviationText',
+                                    'Grund: ${fmtLs(pt.measuredBaseLs)} / ${fmtLs(pt.projectedBaseLs)} l/s'
+                                    '${usedBoost ? '' : ' • $deviationText'}',
                                   ),
                                 if (hasBoost)
                                   Text(
-                                    'Forc: ${fmtLs(pt.measuredBoostLs)} / ${fmtLs(pt.projectedBoostLs)} l/s',
+                                    'Forc: ${fmtLs(pt.measuredBoostLs)} / ${fmtLs(pt.projectedBoostLs)} l/s'
+                                    '${usedBoost ? ' • $deviationText' : ''}',
                                     style: TextStyle(
                                       color: Theme.of(
                                         context,
@@ -481,6 +517,7 @@ class _OverviewPageState extends ConsumerState<OverviewPage> {
                                 ],
                               ],
                             ),
+
                             trailing: RatioBadge(eval: eval),
                           ),
                         );
@@ -549,10 +586,10 @@ class SystemSummaryCardContent extends StatelessWidget {
           spacing: 8,
           runSpacing: 8,
           children: [
-            MetricChip(label: 'Proj Till', value: fmtLs(projSupply)),
-            MetricChip(label: 'Proj Från', value: fmtLs(projExhaust)),
-            MetricChip(label: 'Mätt Till', value: fmtLs(measSupply)),
-            MetricChip(label: 'Mätt Från', value: fmtLs(measExhaust)),
+            MetricChip(label: 'Proj Tilluft', value: fmtLs(projSupply)),
+            MetricChip(label: 'Proj Frånluft', value: fmtLs(projExhaust)),
+            MetricChip(label: 'Mätt Tilluft', value: fmtLs(measSupply)),
+            MetricChip(label: 'Mätt Frånluft', value: fmtLs(measExhaust)),
           ],
         ),
         const SizedBox(height: 12),
@@ -562,10 +599,10 @@ class SystemSummaryCardContent extends StatelessWidget {
           children: [
             MetricChip(label: 'Proj balans', value: fmtPct(projBal)),
             MetricChip(label: 'Mätt balans', value: fmtPct(measBal)),
-            MetricChip(label: 'Till av proj', value: fmtPct(supplyVsProj)),
-            MetricChip(label: 'Från av proj', value: fmtPct(exhaustVsProj)),
+            MetricChip(label: 'TL av proj', value: fmtPct(supplyVsProj)),
+            MetricChip(label: 'FL av proj', value: fmtPct(exhaustVsProj)),
             MetricChip(
-              label: 'Δ Till–Från (mätt)',
+              label: 'Δ TL–FL (mätt)',
               value: '${delta >= 0 ? '+' : ''}${delta.toStringAsFixed(1)} l/s',
             ),
           ],

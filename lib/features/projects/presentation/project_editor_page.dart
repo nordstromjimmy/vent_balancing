@@ -480,7 +480,7 @@ class _MeasureTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final projectsAsync = ref.watch(projectsControllerProvider);
-    String fmtLs(double? v) => v == null ? '—' : '${v.toStringAsFixed(1)} l/s';
+    String fmtLs(double? v) => v == null ? '—' : '${v.toStringAsFixed(0)} l/s';
 
     return projectsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -625,14 +625,15 @@ class _MeasureTab extends ConsumerWidget {
                         const SizedBox(height: 12),
 
                         _MeasuredInputs(
+                          hasBase: pt.projectedBaseLs != null,
+                          hasBoost: pt.projectedBoostLs != null,
                           baseInitialValue: pt.measuredBaseLs,
+                          boostInitialValue: pt.measuredBoostLs,
                           onBaseChanged: (val) {
                             ref
                                 .read(projectsControllerProvider.notifier)
                                 .updateMeasuredBase(projectId, pt.id, val);
                           },
-                          hasBoost: pt.projectedBoostLs != null,
-                          boostInitialValue: pt.measuredBoostLs,
                           onBoostChanged: (val) {
                             ref
                                 .read(projectsControllerProvider.notifier)
@@ -663,18 +664,21 @@ class _MeasureTab extends ConsumerWidget {
 
 class _MeasuredInputs extends StatefulWidget {
   const _MeasuredInputs({
-    required this.baseInitialValue,
-    required this.onBaseChanged,
+    required this.hasBase,
     required this.hasBoost,
+    required this.baseInitialValue,
     required this.boostInitialValue,
+    required this.onBaseChanged,
     required this.onBoostChanged,
   });
 
-  final double? baseInitialValue;
-  final ValueChanged<double?> onBaseChanged;
-
+  final bool hasBase;
   final bool hasBoost;
+
+  final double? baseInitialValue;
   final double? boostInitialValue;
+
+  final ValueChanged<double?> onBaseChanged;
   final ValueChanged<double?> onBoostChanged;
 
   @override
@@ -689,10 +693,10 @@ class _MeasuredInputsState extends State<_MeasuredInputs> {
   void initState() {
     super.initState();
     _baseController = TextEditingController(
-      text: widget.baseInitialValue?.toStringAsFixed(1) ?? '',
+      text: widget.baseInitialValue?.toStringAsFixed(0) ?? '',
     );
     _boostController = TextEditingController(
-      text: widget.boostInitialValue?.toStringAsFixed(1) ?? '',
+      text: widget.boostInitialValue?.toStringAsFixed(0) ?? '',
     );
   }
 
@@ -700,10 +704,10 @@ class _MeasuredInputsState extends State<_MeasuredInputs> {
   void didUpdateWidget(covariant _MeasuredInputs oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    final baseText = widget.baseInitialValue?.toStringAsFixed(1) ?? '';
+    final baseText = widget.baseInitialValue?.toStringAsFixed(0) ?? '';
     if (_baseController.text != baseText) _baseController.text = baseText;
 
-    final boostText = widget.boostInitialValue?.toStringAsFixed(1) ?? '';
+    final boostText = widget.boostInitialValue?.toStringAsFixed(0) ?? '';
     if (_boostController.text != boostText) _boostController.text = boostText;
   }
 
@@ -727,33 +731,33 @@ class _MeasuredInputsState extends State<_MeasuredInputs> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        TextField(
-          controller: _baseController,
-          decoration: InputDecoration(
-            labelText: 'Uppmätt grund (l/s)',
-            border: const OutlineInputBorder(),
-            isDense: true,
-            suffixIcon: IconButton(
-              tooltip: 'Rensa',
-              icon: const Icon(
-                Icons.backspace,
-              ), // safer than backspace_outlined
-              onPressed: () {
-                _baseController.clear();
-                widget.onBaseChanged(null);
-              },
+        if (widget.hasBase)
+          TextField(
+            controller: _baseController,
+            decoration: InputDecoration(
+              labelText: 'Uppmätt grund (l/s)',
+              border: const OutlineInputBorder(),
+              isDense: true,
+              suffixIcon: IconButton(
+                tooltip: 'Rensa',
+                icon: const Icon(Icons.backspace),
+                onPressed: () {
+                  _baseController.clear();
+                  widget.onBaseChanged(null);
+                },
+              ),
             ),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+            ],
+            onSubmitted: (_) => _commitBase(),
+            onEditingComplete: _commitBase,
           ),
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-          ],
-          onSubmitted: (_) => _commitBase(),
-          onEditingComplete: _commitBase,
-        ),
 
-        if (widget.hasBoost) ...[
-          const SizedBox(height: 8),
+        if (widget.hasBase && widget.hasBoost) const SizedBox(height: 8),
+
+        if (widget.hasBoost)
           TextField(
             controller: _boostController,
             decoration: InputDecoration(
@@ -776,7 +780,6 @@ class _MeasuredInputsState extends State<_MeasuredInputs> {
             onSubmitted: (_) => _commitBoost(),
             onEditingComplete: _commitBoost,
           ),
-        ],
       ],
     );
   }

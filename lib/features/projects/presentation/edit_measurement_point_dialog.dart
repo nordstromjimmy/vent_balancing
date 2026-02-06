@@ -38,10 +38,10 @@ class _EditMeasurementPointDialogState
     final p = widget.point;
     _label = TextEditingController(text: p.label);
     _projected = TextEditingController(
-      text: p.projectedBaseLs?.toStringAsFixed(1),
+      text: p.projectedBaseLs?.toStringAsFixed(0),
     );
     _measured = TextEditingController(
-      text: p.measuredBaseLs?.toStringAsFixed(1) ?? '',
+      text: p.measuredBaseLs?.toStringAsFixed(0) ?? '',
     );
     _airType = p.airType;
     _pressure = TextEditingController(
@@ -62,10 +62,10 @@ class _EditMeasurementPointDialogState
     _hasBoost = p.projectedBoostLs != null;
 
     _projectedBoost = TextEditingController(
-      text: p.projectedBoostLs?.toStringAsFixed(1) ?? '',
+      text: p.projectedBoostLs?.toStringAsFixed(0) ?? '',
     );
     _measuredBoost = TextEditingController(
-      text: p.measuredBoostLs?.toStringAsFixed(1) ?? '',
+      text: p.measuredBoostLs?.toStringAsFixed(0) ?? '',
     );
   }
 
