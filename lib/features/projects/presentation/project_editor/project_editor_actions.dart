@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/utils/dialogs.dart';
 import '../../application/projects_controller.dart';
 import '../../domain/project.dart';
+import 'excel_import_export.dart';
 import 'json_import_export.dart';
 
 class ProjectEditorActions extends ConsumerWidget {
@@ -65,6 +66,18 @@ class ProjectEditorActions extends ConsumerWidget {
           );
         }
 
+        if (value == 'export_excel') {
+          final p = project;
+          if (p == null) return;
+
+          await ProjectExcelIo.exportProject(
+            context,
+            controller: controller,
+            projectId: projectId,
+            projectName: p.name,
+          );
+        }
+
         if (value == 'import_json') {
           await ProjectJsonIo.importProject(
             context,
@@ -76,6 +89,7 @@ class ProjectEditorActions extends ConsumerWidget {
       itemBuilder: (context) => const [
         PopupMenuItem(value: 'edit', child: Text('Redigera projekt')),
         PopupMenuItem(value: 'export_json', child: Text('Exportera JSON')),
+        PopupMenuItem(value: 'export_excel', child: Text('Exportera Excel')),
         PopupMenuItem(value: 'import_json', child: Text('Importera JSON')),
         PopupMenuDivider(),
         PopupMenuItem(value: 'delete', child: Text('Radera')),

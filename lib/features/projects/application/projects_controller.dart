@@ -1,3 +1,4 @@
+import 'package:excel/excel.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../project_repository.dart';
@@ -222,6 +223,118 @@ class ProjectsController extends StateNotifier<AsyncValue<List<Project>>> {
     return newId;
   }
 
+  Future<List<int>> exportProjectToExcelBytes(String projectId) async {
+    final p = await _repo.getProject(projectId);
+    if (p == null) throw StateError('Project not found');
+
+    // Group by room label (so TL/FL end up on the same row)
+    final byRoom = <String, _RoomRow>{};
+
+    for (final pt in p.points) {
+      final key = pt.label.trim();
+      final row = byRoom.putIfAbsent(key, () => _RoomRow());
+      if (pt.airType == AirType.supply) {
+        row.supply = pt;
+      } else {
+        row.exhaust = pt;
+      }
+    }
+
+    final rooms = byRoom.keys.toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+
+    final excel = Excel.createExcel();
+    final sheet = excel['Översikt'];
+    excel.setDefaultSheet('Översikt');
+
+    sheet.appendRow([
+      TextCellValue('Rum'),
+      TextCellValue('Projekterat flöde Tilluft'),
+      TextCellValue('Uppmätt flöde Tilluft'),
+      TextCellValue('Inställning'),
+      TextCellValue('Tryck'),
+      TextCellValue('K-faktor'),
+      TextCellValue('Projekterat flöde Frånluft'),
+      TextCellValue('Uppmätt flöde Frånluft'),
+      TextCellValue('Inställning'),
+      TextCellValue('Tryck'),
+      TextCellValue('K-faktor'),
+      TextCellValue('Övrigt'),
+    ]);
+
+    double? pickProjected(MeasurementPoint pt) =>
+        pt.projectedBaseLs ?? pt.projectedBoostLs;
+    double? pickMeasured(MeasurementPoint pt) =>
+        pt.measuredBaseLs ?? pt.measuredBoostLs;
+
+    bool usesBoostOnly(MeasurementPoint pt) =>
+        (pt.projectedBaseLs == null || pt.projectedBaseLs == 0) &&
+        (pt.projectedBoostLs != null && pt.projectedBoostLs! > 0);
+
+    String fmtNum(double? v) => v == null ? '' : v.toStringAsFixed(0);
+
+    for (final room in rooms) {
+      final r = byRoom[room]!;
+      final s = r.supply;
+      final e = r.exhaust;
+
+      final sProj = s == null ? null : pickProjected(s);
+      final sMeas = s == null ? null : pickMeasured(s);
+
+      final eProj = e == null ? null : pickProjected(e);
+      final eMeas = e == null ? null : pickMeasured(e);
+
+      final otherParts = <String>[];
+      if (s?.notes?.trim().isNotEmpty ?? false) {
+        otherParts.add('TL: ${s!.notes!.trim()}');
+      }
+      if (e?.notes?.trim().isNotEmpty ?? false) {
+        otherParts.add('FL: ${e!.notes!.trim()}');
+      }
+      if (s != null && usesBoostOnly(s)) {
+        otherParts.add('TL forcerat (ingen grund)');
+      }
+      if (e != null && usesBoostOnly(e)) {
+        otherParts.add('FL forcerat (ingen grund)');
+      }
+
+      sheet.appendRow([
+        TextCellValue(room),
+
+        // Tilluft
+        TextCellValue(fmtNum(sProj)),
+        TextCellValue(fmtNum(sMeas)),
+        TextCellValue(s?.setting ?? ''),
+        TextCellValue(fmtNum(s?.pressurePa)),
+        TextCellValue(fmtNum(s?.kFactor)),
+
+        // Frånluft
+        TextCellValue(fmtNum(eProj)),
+        TextCellValue(fmtNum(eMeas)),
+        TextCellValue(e?.setting ?? ''),
+        TextCellValue(fmtNum(e?.pressurePa)),
+        TextCellValue(fmtNum(e?.kFactor)),
+
+        // Övrigt
+        TextCellValue(otherParts.join(' • ')),
+      ]);
+    }
+
+    for (var col = 0; col < 12; col++) {
+      sheet.setColumnAutoFit(col);
+    }
+
+    final bytes = excel.encode();
+    if (bytes == null) throw Exception('Excel encode failed');
+    return bytes;
+  }
+
   Future<Project?> getProjectById(String projectId) =>
       _repo.getProject(projectId);
+}
+
+// helper class inside the same file (below controller)
+class _RoomRow {
+  MeasurementPoint? supply;
+  MeasurementPoint? exhaust;
 }
