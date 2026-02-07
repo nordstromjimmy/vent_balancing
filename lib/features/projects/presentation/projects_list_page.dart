@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/utils/dialogs.dart';
 import '../application/projects_controller.dart';
-import 'project_editor_page.dart';
+import 'project_editor/project_editor_page.dart';
 
 class ProjectsListPage extends ConsumerWidget {
   const ProjectsListPage({super.key});
@@ -190,8 +190,6 @@ class ProjectsListPage extends ConsumerWidget {
                           value: 'rename',
                           child: Text('Ändra namn'),
                         ),
-                        //PopupMenuDivider(),
-                        //PopupMenuItem(value: 'delete', child: Text('Radera')),
                       ],
                     ),
                     onTap: () async {
