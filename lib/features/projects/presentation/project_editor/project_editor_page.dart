@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../application/projects_controller.dart';
+import '../../domain/project.dart';
 import '../overview/overview_page.dart';
 import 'add_measurement_point_dialog.dart';
 import 'measure_tab.dart';
@@ -34,8 +35,11 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage>
     super.dispose();
   }
 
-  Future<void> _addPoint(BuildContext context) async {
-    final points = await showAddMeasurementPointDialog(context);
+  Future<void> _addPoint(BuildContext context, Project project) async {
+    final points = await showAddMeasurementPointDialog(
+      context,
+      tolerancePct: project.defaultTolerancePct, // ← wired through
+    );
     if (points == null || points.isEmpty) return;
 
     await ref
@@ -47,16 +51,20 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage>
   Widget build(BuildContext context) {
     final projectsAsync = ref.watch(projectsControllerProvider);
 
-    final project = projectsAsync.whenOrNull(
-      data: (projects) => projects.firstWhere(
-        (p) => p.id == widget.projectId,
-        orElse: () => throw StateError('Project not found'),
-      ),
+    // ← compute once, used for AppBar title, FAB guard, and actions
+    final Project? project = projectsAsync.whenOrNull(
+      data: (projects) {
+        try {
+          return projects.firstWhere((p) => p.id == widget.projectId);
+        } catch (_) {
+          return null;
+        }
+      },
     );
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(project?.name ?? 'Project'),
+        title: Text(project?.name ?? 'Projekt'),
         bottom: TabBar(
           controller: _tabs,
           tabs: const [
@@ -71,29 +79,22 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage>
       body: projectsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, st) => Center(child: Text('Error: $e')),
-        data: (projects) {
-          final p = projects.firstWhere(
-            (x) => x.id == widget.projectId,
-            orElse: () => throw StateError('Project not found'),
-          );
-
-          return TabBarView(
-            controller: _tabs,
-            children: [
-              MeasureTab(projectId: p.id),
-              OverviewPage(
-                projectId: p.id,
-                filter: _filter,
-                sort: _sort,
-                onFilterChanged: (f) => setState(() => _filter = f),
-                onSortChanged: (s) => setState(() => _sort = s),
-              ),
-            ],
-          );
-        },
+        data: (_) => TabBarView(
+          controller: _tabs,
+          children: [
+            MeasureTab(projectId: widget.projectId),
+            OverviewPage(
+              projectId: widget.projectId,
+              filter: _filter,
+              sort: _sort,
+              onFilterChanged: (f) => setState(() => _filter = f),
+              onSortChanged: (s) => setState(() => _sort = s),
+            ),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: project == null ? null : () => _addPoint(context),
+        onPressed: project == null ? null : () => _addPoint(context, project),
         icon: const Icon(Icons.add),
         foregroundColor: Colors.white,
         backgroundColor: Colors.black54,

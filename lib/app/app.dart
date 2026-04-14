@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../app/theme.dart';
 import '../features/projects/presentation/projects_list_page.dart';
 
 class VentBalancingApp extends StatelessWidget {
@@ -9,7 +10,7 @@ class VentBalancingApp extends StatelessWidget {
     return MaterialApp(
       title: 'Vent Balancing',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.blueGrey),
+      theme: buildAppTheme(), // ← was: ThemeData(useMaterial3: true, ...)
       home: const ProjectsListPage(),
     );
   }

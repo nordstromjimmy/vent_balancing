@@ -16,13 +16,12 @@ class EditMeasurementPointDialog extends StatefulWidget {
 class _EditMeasurementPointDialogState
     extends State<EditMeasurementPointDialog> {
   late final TextEditingController _label;
-  late final TextEditingController _projected;
-  late final TextEditingController _measured;
   late AirType _airType;
 
   late final TextEditingController _pressure;
   late final TextEditingController _kFactor;
   late final TextEditingController _setting;
+  late final TextEditingController _tolerance; // ← new
 
   late final TextEditingController _projectedBase;
   late final TextEditingController _measuredBase;
@@ -36,21 +35,16 @@ class _EditMeasurementPointDialogState
   void initState() {
     super.initState();
     final p = widget.point;
+
     _label = TextEditingController(text: p.label);
-    _projected = TextEditingController(
-      text: p.projectedBaseLs?.toStringAsFixed(0),
-    );
-    _measured = TextEditingController(
-      text: p.measuredBaseLs?.toStringAsFixed(0) ?? '',
-    );
     _airType = p.airType;
+
     _pressure = TextEditingController(
-      text: widget.point.pressurePa?.toStringAsFixed(0) ?? '',
+      text: p.pressurePa?.toStringAsFixed(0) ?? '',
     );
-    _kFactor = TextEditingController(
-      text: widget.point.kFactor?.toStringAsFixed(2) ?? '',
-    );
-    _setting = TextEditingController(text: widget.point.setting ?? '');
+    _kFactor = TextEditingController(text: p.kFactor?.toStringAsFixed(2) ?? '');
+    _setting = TextEditingController(text: p.setting ?? '');
+    _tolerance = TextEditingController(text: p.tolerancePct.toStringAsFixed(0));
 
     _projectedBase = TextEditingController(
       text: p.projectedBaseLs?.toStringAsFixed(1),
@@ -72,11 +66,10 @@ class _EditMeasurementPointDialogState
   @override
   void dispose() {
     _label.dispose();
-    _projected.dispose();
-    _measured.dispose();
     _pressure.dispose();
     _kFactor.dispose();
     _setting.dispose();
+    _tolerance.dispose();
     _projectedBase.dispose();
     _measuredBase.dispose();
     _projectedBoost.dispose();
@@ -100,6 +93,10 @@ class _EditMeasurementPointDialogState
     final kFactor = _parseDouble(_kFactor.text);
     final setting = _setting.text.trim();
 
+    // Tolerance — fall back to existing value if blank/invalid
+    final tolerancePct =
+        _parseDouble(_tolerance.text) ?? widget.point.tolerancePct;
+
     // Base
     final projectedBase = clean(_parseDouble(_projectedBase.text));
     final measuredBase = clean(_parseDouble(_measuredBase.text));
@@ -120,14 +117,15 @@ class _EditMeasurementPointDialogState
       context,
       widget.point.copyWith(
         label: label,
-        projectedBaseLs: projectedBase, // can be null
+        projectedBaseLs: projectedBase,
         measuredBaseLs: measuredBase,
-        projectedBoostLs: projectedBoost, // can be null
+        projectedBoostLs: projectedBoost,
         measuredBoostLs: measuredBoost,
         pressurePa: pressure,
         kFactor: kFactor,
         setting: setting.isEmpty ? null : setting,
         airType: _airType,
+        tolerancePct: tolerancePct, // ← saved
       ),
     );
   }
@@ -148,6 +146,7 @@ class _EditMeasurementPointDialogState
               ),
               autofocus: false,
             ),
+            const SizedBox(height: 12),
             TextField(
               controller: _projectedBase,
               decoration: const InputDecoration(
@@ -254,6 +253,21 @@ class _EditMeasurementPointDialogState
                 labelText: 'Inställning',
                 hintText: 't.ex. +6, 0, 4',
               ),
+            ),
+            const SizedBox(height: 12),
+            // ← new: per-point tolerance override
+            TextField(
+              controller: _tolerance,
+              decoration: const InputDecoration(
+                labelText: 'Tolerans (%)',
+                hintText: 't.ex. 10',
+              ),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+              ],
               textInputAction: TextInputAction.done,
             ),
           ],
@@ -263,21 +277,14 @@ class _EditMeasurementPointDialogState
         Row(
           children: [
             TextButton(
-              style: ButtonStyle(
+              style: const ButtonStyle(
                 foregroundColor: WidgetStatePropertyAll<Color>(Colors.black54),
               ),
               onPressed: () => Navigator.pop(context),
               child: const Text('Ångra'),
             ),
-            Spacer(),
-            FilledButton(
-              style: ButtonStyle(
-                foregroundColor: WidgetStatePropertyAll<Color>(Colors.white),
-                backgroundColor: WidgetStatePropertyAll<Color>(Colors.black54),
-              ),
-              onPressed: _save,
-              child: const Text('Spara'),
-            ),
+            const Spacer(),
+            FilledButton(onPressed: _save, child: const Text('Spara')),
           ],
         ),
       ],

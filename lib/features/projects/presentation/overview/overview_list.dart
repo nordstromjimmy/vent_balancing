@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/utils/formatting.dart'; // ← shared helpers
 import '../../../../core/widgets/ratio_badge.dart';
 import '../../domain/measurement_point.dart';
 import '../../domain/flow_eval.dart';
@@ -12,8 +13,6 @@ class OverviewList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String fmtLs(double? v) => v == null ? '—' : v.toStringAsFixed(1);
-
     if (items.isEmpty) {
       return const Center(
         child: Padding(
@@ -43,10 +42,7 @@ class OverviewList extends StatelessWidget {
             (pt.projectedBoostLs != null && pt.projectedBoostLs! > 0) ||
             (pt.measuredBoostLs != null);
 
-        final deviation = eval.deviationPct;
-        final deviationText = deviation == null
-            ? '—'
-            : '${deviation >= 0 ? '+' : ''}${deviation.toStringAsFixed(0)}%';
+        final deviationText = fmtDeviationPct(eval.deviationPct);
 
         final meta = <String>[];
         if (pt.pressurePa != null) {
@@ -70,12 +66,12 @@ class OverviewList extends StatelessWidget {
               children: [
                 if (hasBase)
                   Text(
-                    'Grund: ${fmtLs(pt.measuredBaseLs)} / ${fmtLs(pt.projectedBaseLs)} l/s'
+                    'Grund: ${fmtLsRaw(pt.measuredBaseLs)} / ${fmtLsRaw(pt.projectedBaseLs)} l/s'
                     '${usedBoost ? '' : ' • $deviationText'}',
                   ),
                 if (hasBoost)
                   Text(
-                    'Forc: ${fmtLs(pt.measuredBoostLs)} / ${fmtLs(pt.projectedBoostLs)} l/s'
+                    'Forc: ${fmtLsRaw(pt.measuredBoostLs)} / ${fmtLsRaw(pt.projectedBoostLs)} l/s'
                     '${usedBoost ? ' • $deviationText' : ''}',
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.outline,

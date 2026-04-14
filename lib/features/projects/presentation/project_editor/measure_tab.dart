@@ -56,11 +56,25 @@ class MeasureTab extends ConsumerWidget {
             }
             final metaText = meta.isEmpty ? null : meta.join(' • ');
 
-            final eval = FlowEval(
-              projected: pt.projectedBaseLs ?? 0,
-              measured: pt.measuredBaseLs,
-              tolerancePct: pt.tolerancePct,
-            );
+            final hasBase = pt.projectedBaseLs != null;
+            final hasBoost = pt.projectedBoostLs != null;
+
+            // Build one eval per active mode — shown as separate badges.
+            final baseEval = hasBase
+                ? FlowEval(
+                    projected: pt.projectedBaseLs!,
+                    measured: pt.measuredBaseLs,
+                    tolerancePct: pt.tolerancePct,
+                  )
+                : null;
+
+            final boostEval = hasBoost
+                ? FlowEval(
+                    projected: pt.projectedBoostLs!,
+                    measured: pt.measuredBoostLs,
+                    tolerancePct: pt.tolerancePct,
+                  )
+                : null;
 
             return Dismissible(
               key: ValueKey(pt.id),
@@ -75,7 +89,7 @@ class MeasureTab extends ConsumerWidget {
                 return await showConfirmDialog(
                   context: context,
                   title: 'Radera mätningar?',
-                  message: '“${pt.label}” kommer tas bort.',
+                  message: '"${pt.label}" kommer tas bort.',
                   confirmText: 'Radera',
                 );
               },
@@ -114,6 +128,14 @@ class MeasureTab extends ConsumerWidget {
                               ),
                             ),
                             const SizedBox(width: 8),
+
+                            // One badge per active mode; labelled when both present.
+                            _EvalBadges(
+                              baseEval: baseEval,
+                              boostEval: boostEval,
+                            ),
+                            const SizedBox(width: 10),
+
                             Text(
                               pt.airType == AirType.supply
                                   ? 'Tilluft'
@@ -123,8 +145,6 @@ class MeasureTab extends ConsumerWidget {
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
-                            const SizedBox(width: 10),
-                            RatioBadge(eval: eval),
                           ],
                         ),
                         const SizedBox(height: 10),
@@ -155,8 +175,8 @@ class MeasureTab extends ConsumerWidget {
                         ),
                         const SizedBox(height: 12),
                         MeasuredInputs(
-                          hasBase: pt.projectedBaseLs != null,
-                          hasBoost: pt.projectedBoostLs != null,
+                          hasBase: hasBase,
+                          hasBoost: hasBoost,
                           baseInitialValue: pt.measuredBaseLs,
                           boostInitialValue: pt.measuredBoostLs,
                           onBaseChanged: (val) {
@@ -188,6 +208,58 @@ class MeasureTab extends ConsumerWidget {
           },
         );
       },
+    );
+  }
+}
+
+/// Renders one or two [RatioBadge] widgets depending on which flow modes exist.
+/// When both are present, each badge is labelled "G" (grund) or "F" (forc)
+/// so the technician can tell them apart at a glance.
+class _EvalBadges extends StatelessWidget {
+  const _EvalBadges({required this.baseEval, required this.boostEval});
+
+  final FlowEval? baseEval;
+  final FlowEval? boostEval;
+
+  @override
+  Widget build(BuildContext context) {
+    final both = baseEval != null && boostEval != null;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (baseEval != null) ...[
+          if (both)
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: Text(
+                'G',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: Theme.of(context).colorScheme.outline,
+                ),
+              ),
+            ),
+          RatioBadge(eval: baseEval!),
+        ],
+        if (both) const SizedBox(width: 6),
+        if (boostEval != null) ...[
+          if (both)
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: Text(
+                'F',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: Theme.of(context).colorScheme.outline,
+                ),
+              ),
+            ),
+          RatioBadge(eval: boostEval!),
+        ],
+      ],
     );
   }
 }

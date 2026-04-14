@@ -7,7 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../application/projects_controller.dart';
-import 'project_editor_page.dart'; // for navigation to ProjectEditorPage if you want
+import 'project_editor_page.dart';
 
 class ProjectJsonIo {
   static Future<void> exportProject(
@@ -20,7 +20,7 @@ class ProjectJsonIo {
       final jsonString = await controller.exportProjectToJsonString(projectId);
 
       final dir = await getTemporaryDirectory();
-      final safeName = (p?.name ?? 'project')
+      final safeName = (p?.name ?? 'projekt')
           .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')
           .trim();
 
@@ -34,7 +34,7 @@ class ProjectJsonIo {
       if (!context.mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Export failed: $e')));
+      ).showSnackBar(SnackBar(content: Text('Export misslyckades: $e')));
     }
   }
 
@@ -60,22 +60,22 @@ class ProjectJsonIo {
       final choice = await showDialog<String>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Import JSON'),
+          title: const Text('Importera JSON'),
           content: const Text(
-            'Do you want to overwrite this project, or import as a new project?',
+            'Vill du skriva över det här projektet, eller importera som ett nytt projekt?',
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: const Text('Ångra'),
             ),
             FilledButton.tonal(
               onPressed: () => Navigator.pop(context, 'copy'),
-              child: const Text('Import as copy'),
+              child: const Text('Importera som kopia'),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, 'overwrite'),
-              child: const Text('Overwrite'),
+              child: const Text('Skriv över'),
             ),
           ],
         ),
@@ -102,12 +102,12 @@ class ProjectJsonIo {
       if (!context.mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Import completed')));
+      ).showSnackBar(const SnackBar(content: Text('Import slutförd')));
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Import failed: $e')));
+      ).showSnackBar(SnackBar(content: Text('Import misslyckades: $e')));
     }
   }
 }

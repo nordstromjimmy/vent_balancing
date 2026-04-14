@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/utils/formatting.dart'; // ← shared helpers
 import '../../../../core/widgets/metric_chip.dart';
 import 'system_summary_card.dart';
 
@@ -22,14 +23,6 @@ class SystemSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    /*     final subtitle = mode == SummaryMode.base
-        ? '${summary.measuredBaseCount}/${summary.totalCount} mätta • '
-              'Proj balans: ${summary.baseProjectedBalancePct == null ? '—' : '${summary.baseProjectedBalancePct!.toStringAsFixed(0)}%'} • '
-              'Mätt balans: ${summary.baseMeasuredBalancePct == null ? '—' : '${summary.baseMeasuredBalancePct!.toStringAsFixed(0)}%'}'
-        : '${summary.measuredBoostCount}/${summary.totalCount} mätta • '
-              'Proj balans: ${summary.boostProjectedBalancePct == null ? '—' : '${summary.boostProjectedBalancePct!.toStringAsFixed(0)}%'} • '
-              'Mätt balans: ${summary.boostMeasuredBalancePct == null ? '—' : '${summary.boostMeasuredBalancePct!.toStringAsFixed(0)}%'}'; */
-
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
       child: Card(
@@ -42,7 +35,6 @@ class SystemSummaryCard extends StatelessWidget {
             'Systemöversikt',
             style: TextStyle(fontWeight: FontWeight.w800),
           ),
-          //subtitle: Text(subtitle),
           children: [
             SegmentedButton<SummaryMode>(
               segments: const [
@@ -76,9 +68,6 @@ class SystemSummaryCardContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String fmtPct(double? v) => v == null ? '—' : '${v.toStringAsFixed(0)}%';
-    String fmtLs(double v) => '${v.toStringAsFixed(1)} l/s';
-
     final isBase = mode == SummaryMode.base;
 
     final projSupply = isBase
@@ -119,10 +108,16 @@ class SystemSummaryCardContent extends StatelessWidget {
           spacing: 8,
           runSpacing: 8,
           children: [
-            MetricChip(label: 'Proj TL', value: fmtLs(projSupply)),
-            MetricChip(label: 'Proj FL', value: fmtLs(projExhaust)),
-            MetricChip(label: 'Mätt TL', value: fmtLs(measSupply)),
-            MetricChip(label: 'Mätt FL', value: fmtLs(measExhaust)),
+            MetricChip(label: 'Proj TL', value: fmtLs(projSupply, decimals: 1)),
+            MetricChip(
+              label: 'Proj FL',
+              value: fmtLs(projExhaust, decimals: 1),
+            ),
+            MetricChip(label: 'Mätt TL', value: fmtLs(measSupply, decimals: 1)),
+            MetricChip(
+              label: 'Mätt FL',
+              value: fmtLs(measExhaust, decimals: 1),
+            ),
           ],
         ),
         const SizedBox(height: 12),
@@ -134,10 +129,7 @@ class SystemSummaryCardContent extends StatelessWidget {
             MetricChip(label: 'Mätt balans', value: fmtPct(measBal)),
             MetricChip(label: 'TL av proj', value: fmtPct(supplyVsProj)),
             MetricChip(label: 'FL av proj', value: fmtPct(exhaustVsProj)),
-            MetricChip(
-              label: 'Δ TL–FL (mätt)',
-              value: '${delta >= 0 ? '+' : ''}${delta.toStringAsFixed(1)} l/s',
-            ),
+            MetricChip(label: 'Δ TL–FL (mätt)', value: fmtDeltaLs(delta)),
           ],
         ),
       ],

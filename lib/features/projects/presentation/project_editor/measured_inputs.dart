@@ -72,51 +72,66 @@ class _MeasuredInputsState extends State<MeasuredInputs> {
     return Column(
       children: [
         if (widget.hasBase)
-          TextField(
-            controller: _baseController,
-            decoration: InputDecoration(
-              labelText: 'Uppmätt grund (l/s)',
-              border: const OutlineInputBorder(),
-              isDense: true,
-              suffixIcon: IconButton(
-                tooltip: 'Rensa',
-                icon: const Icon(Icons.backspace),
-                onPressed: () {
-                  _baseController.clear();
-                  widget.onBaseChanged(null);
-                },
+          // ← Focus wrapper: commits when the user taps away from the field
+          Focus(
+            onFocusChange: (hasFocus) {
+              if (!hasFocus) _commitBase();
+            },
+            child: TextField(
+              controller: _baseController,
+              decoration: InputDecoration(
+                labelText: 'Uppmätt grund (l/s)',
+                border: const OutlineInputBorder(),
+                isDense: true,
+                suffixIcon: IconButton(
+                  tooltip: 'Rensa',
+                  icon: const Icon(Icons.backspace),
+                  onPressed: () {
+                    _baseController.clear();
+                    widget.onBaseChanged(null);
+                  },
+                ),
               ),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+              ],
+              onSubmitted: (_) => _commitBase(),
+              onEditingComplete: _commitBase,
             ),
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-            ],
-            onSubmitted: (_) => _commitBase(),
-            onEditingComplete: _commitBase,
           ),
         if (widget.hasBase && widget.hasBoost) const SizedBox(height: 8),
         if (widget.hasBoost)
-          TextField(
-            controller: _boostController,
-            decoration: InputDecoration(
-              labelText: 'Uppmätt forcerat (l/s)',
-              border: const OutlineInputBorder(),
-              isDense: true,
-              suffixIcon: IconButton(
-                tooltip: 'Rensa',
-                icon: const Icon(Icons.backspace),
-                onPressed: () {
-                  _boostController.clear();
-                  widget.onBoostChanged(null);
-                },
+          Focus(
+            onFocusChange: (hasFocus) {
+              if (!hasFocus) _commitBoost();
+            },
+            child: TextField(
+              controller: _boostController,
+              decoration: InputDecoration(
+                labelText: 'Uppmätt forcerat (l/s)',
+                border: const OutlineInputBorder(),
+                isDense: true,
+                suffixIcon: IconButton(
+                  tooltip: 'Rensa',
+                  icon: const Icon(Icons.backspace),
+                  onPressed: () {
+                    _boostController.clear();
+                    widget.onBoostChanged(null);
+                  },
+                ),
               ),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+              ],
+              onSubmitted: (_) => _commitBoost(),
+              onEditingComplete: _commitBoost,
             ),
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-            ],
-            onSubmitted: (_) => _commitBoost(),
-            onEditingComplete: _commitBoost,
           ),
       ],
     );

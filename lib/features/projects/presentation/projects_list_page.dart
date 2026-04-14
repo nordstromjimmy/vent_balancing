@@ -8,58 +8,21 @@ class ProjectsListPage extends ConsumerWidget {
   const ProjectsListPage({super.key});
 
   Future<void> _createProject(BuildContext context, WidgetRef ref) async {
-    final controller = ref.read(projectsControllerProvider.notifier);
-
-    final name = await showDialog<String>(
+    // ← was an inline AlertDialog duplicating showTextInputDialog
+    final name = await showTextInputDialog(
       context: context,
-      builder: (context) {
-        final textController = TextEditingController();
-        return AlertDialog(
-          title: const Text('Nytt projekt'),
-          content: TextField(
-            controller: textController,
-            autofocus: false,
-            decoration: const InputDecoration(
-              labelText: 'Projekt namn',
-              hintText: 'e.x Byggnad A – Våning 2',
-            ),
-            onSubmitted: (_) =>
-                Navigator.pop(context, textController.text.trim()),
-          ),
-          actions: [
-            Row(
-              children: [
-                TextButton(
-                  style: ButtonStyle(
-                    foregroundColor: WidgetStatePropertyAll<Color>(
-                      Colors.black54,
-                    ),
-                  ),
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Ångra'),
-                ),
-                Spacer(),
-                FilledButton(
-                  style: ButtonStyle(
-                    backgroundColor: WidgetStatePropertyAll<Color>(
-                      Colors.black54,
-                    ),
-                  ),
-                  onPressed: () =>
-                      Navigator.pop(context, textController.text.trim()),
-                  child: const Text('Skapa'),
-                ),
-              ],
-            ),
-          ],
-        );
-      },
+      title: 'Nytt projekt',
+      labelText: 'Projekt namn',
+      hintText: 'e.x Byggnad A – Våning 2',
+      confirmText: 'Skapa',
     );
 
     final trimmed = name?.trim();
     if (trimmed == null || trimmed.isEmpty) return;
 
-    final projectId = await controller.createProject(trimmed);
+    final projectId = await ref
+        .read(projectsControllerProvider.notifier)
+        .createProject(trimmed);
 
     if (!context.mounted) return;
     await Navigator.of(context).push(
@@ -78,7 +41,7 @@ class ProjectsListPage extends ConsumerWidget {
         title: const Text('Projekt'),
         actions: [
           IconButton(
-            tooltip: 'Refresh',
+            tooltip: 'Uppdatera',
             onPressed: () =>
                 ref.read(projectsControllerProvider.notifier).refresh(),
             icon: const Icon(Icons.refresh),
@@ -100,7 +63,7 @@ class ProjectsListPage extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Something went wrong:',
+                'Något gick fel:',
                 style: TextStyle(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 8),
@@ -109,7 +72,7 @@ class ProjectsListPage extends ConsumerWidget {
               FilledButton(
                 onPressed: () =>
                     ref.read(projectsControllerProvider.notifier).refresh(),
-                child: const Text('Try again'),
+                child: const Text('Försök igen'),
               ),
             ],
           ),
@@ -149,7 +112,7 @@ class ProjectsListPage extends ConsumerWidget {
                     context: context,
                     title: 'Radera projekt?',
                     message:
-                        '“${p.name}” kommer att tas bort från den här enheten.',
+                        '"${p.name}" kommer att tas bort från den här enheten.',
                     confirmText: 'Radera',
                   );
                 },
