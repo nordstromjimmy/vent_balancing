@@ -21,13 +21,29 @@ Future<String?> showTextInputDialog({
           onSubmitted: (_) => Navigator.pop(context, c.text.trim()),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Ångra'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, c.text.trim()),
-            child: Text(confirmText),
+          Row(
+            children: [
+              TextButton(
+                style: ButtonStyle(
+                  foregroundColor: WidgetStatePropertyAll<Color>(
+                    Colors.black54,
+                  ),
+                ),
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Ångra'),
+              ),
+              Spacer(),
+              FilledButton(
+                style: ButtonStyle(
+                  foregroundColor: WidgetStatePropertyAll<Color>(Colors.white),
+                  backgroundColor: WidgetStatePropertyAll<Color>(
+                    Colors.black54,
+                  ),
+                ),
+                onPressed: () => Navigator.pop(context, c.text.trim()),
+                child: Text(confirmText),
+              ),
+            ],
           ),
         ],
       );
@@ -48,13 +64,29 @@ Future<bool> showConfirmDialog({
         title: Text(title),
         content: Text(message),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Ångra'),
-          ),
-          FilledButton.tonal(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(confirmText),
+          Row(
+            children: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                style: ButtonStyle(
+                  foregroundColor: WidgetStatePropertyAll<Color>(
+                    Colors.black54,
+                  ),
+                ),
+                child: const Text('Ångra'),
+              ),
+              Spacer(),
+              FilledButton.tonal(
+                style: ButtonStyle(
+                  foregroundColor: WidgetStatePropertyAll<Color>(Colors.white),
+                  backgroundColor: WidgetStatePropertyAll<Color>(
+                    Colors.black54,
+                  ),
+                ),
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(confirmText),
+              ),
+            ],
           ),
         ],
       );

@@ -7,6 +7,21 @@ import '../domain/project.dart';
 import '../domain/measurement_point.dart';
 import 'dart:convert';
 
+enum _ExportMode { base, boost }
+
+class _RoomRow {
+  MeasurementPoint? supply;
+  MeasurementPoint? exhaust;
+}
+
+class _ExportRow {
+  _ExportRow(this.room, this.mode, this.row);
+
+  final String room;
+  final _ExportMode mode;
+  final _RoomRow row;
+}
+
 final projectRepositoryProvider = Provider<ProjectRepository>((ref) {
   return HiveProjectRepository();
 });
@@ -179,6 +194,37 @@ class ProjectsController extends StateNotifier<AsyncValue<List<Project>>> {
     return const JsonEncoder.withIndent('  ').convert(p.toJson());
   }
 
+  Future<String?> duplicateProject(String projectId) async {
+    final p = await _repo.getProject(projectId);
+    if (p == null) return null;
+
+    final now = DateTime.now();
+    final newProjectId = _uuid.v4();
+
+    final copiedPoints = p.points
+        .map(
+          (pt) => pt.copyWith(
+            id: _uuid.v4(),
+            measuredBaseLs: null,
+            measuredBoostLs: null,
+          ),
+        )
+        .toList();
+
+    final copiedProject = p.copyWith(
+      id: newProjectId,
+      name: '${p.name} (kopia)',
+      points: copiedPoints,
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    await _repo.upsertProject(copiedProject);
+    await refresh();
+
+    return newProjectId;
+  }
+
   /// Import JSON into an existing project (overwrite points etc)
   Future<void> importIntoProject({
     required String projectId,
@@ -227,26 +273,70 @@ class ProjectsController extends StateNotifier<AsyncValue<List<Project>>> {
     final p = await _repo.getProject(projectId);
     if (p == null) throw StateError('Project not found');
 
-    // Group by room label (so TL/FL end up on the same row)
+    // Group by room label (so TL/FL go on same row)
     final byRoom = <String, _RoomRow>{};
-
     for (final pt in p.points) {
       final key = pt.label.trim();
-      final row = byRoom.putIfAbsent(key, () => _RoomRow());
+      final r = byRoom.putIfAbsent(key, () => _RoomRow());
       if (pt.airType == AirType.supply) {
-        row.supply = pt;
+        r.supply = pt;
       } else {
-        row.exhaust = pt;
+        r.exhaust = pt;
       }
     }
+
+    bool hasAnyBase(_RoomRow r) {
+      final s = r.supply;
+      final e = r.exhaust;
+
+      final sHas =
+          (s?.projectedBaseLs != null && s!.projectedBaseLs! > 0) ||
+          (s?.measuredBaseLs != null);
+      final eHas =
+          (e?.projectedBaseLs != null && e!.projectedBaseLs! > 0) ||
+          (e?.measuredBaseLs != null);
+
+      return sHas || eHas;
+    }
+
+    bool hasAnyBoost(_RoomRow r) {
+      final s = r.supply;
+      final e = r.exhaust;
+
+      final sHas =
+          (s?.projectedBoostLs != null && s!.projectedBoostLs! > 0) ||
+          (s?.measuredBoostLs != null);
+      final eHas =
+          (e?.projectedBoostLs != null && e!.projectedBoostLs! > 0) ||
+          (e?.measuredBoostLs != null);
+
+      return sHas || eHas;
+    }
+
+    String fmtNum(double? v) => v == null ? '' : v.toStringAsFixed(1);
+
+    // Build export rows: base row first, then boost row (if exists)
+    final exportRows = <_ExportRow>[];
 
     final rooms = byRoom.keys.toList()
       ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
 
+    for (final room in rooms) {
+      final rr = byRoom[room]!;
+      if (hasAnyBase(rr)) {
+        exportRows.add(_ExportRow(room, _ExportMode.base, rr));
+      }
+      if (hasAnyBoost(rr)) {
+        exportRows.add(_ExportRow(room, _ExportMode.boost, rr));
+      }
+    }
+
+    // Create workbook
     final excel = Excel.createExcel();
     final sheet = excel['Översikt'];
     excel.setDefaultSheet('Översikt');
 
+    // Header row
     sheet.appendRow([
       TextCellValue('Rum'),
       TextCellValue('Projekterat flöde Tilluft'),
@@ -262,61 +352,45 @@ class ProjectsController extends StateNotifier<AsyncValue<List<Project>>> {
       TextCellValue('Övrigt'),
     ]);
 
-    double? pickProjected(MeasurementPoint pt) =>
-        pt.projectedBaseLs ?? pt.projectedBoostLs;
-    double? pickMeasured(MeasurementPoint pt) =>
-        pt.measuredBaseLs ?? pt.measuredBoostLs;
+    for (final er in exportRows) {
+      final s = er.row.supply;
+      final e = er.row.exhaust;
 
-    bool usesBoostOnly(MeasurementPoint pt) =>
-        (pt.projectedBaseLs == null || pt.projectedBaseLs == 0) &&
-        (pt.projectedBoostLs != null && pt.projectedBoostLs! > 0);
+      // Pick values depending on mode
+      final sProj = er.mode == _ExportMode.base
+          ? s?.projectedBaseLs
+          : s?.projectedBoostLs;
+      final sMeas = er.mode == _ExportMode.base
+          ? s?.measuredBaseLs
+          : s?.measuredBoostLs;
 
-    String fmtNum(double? v) => v == null ? '' : v.toStringAsFixed(0);
+      final eProj = er.mode == _ExportMode.base
+          ? e?.projectedBaseLs
+          : e?.projectedBoostLs;
+      final eMeas = er.mode == _ExportMode.base
+          ? e?.measuredBaseLs
+          : e?.measuredBoostLs;
 
-    for (final room in rooms) {
-      final r = byRoom[room]!;
-      final s = r.supply;
-      final e = r.exhaust;
-
-      final sProj = s == null ? null : pickProjected(s);
-      final sMeas = s == null ? null : pickMeasured(s);
-
-      final eProj = e == null ? null : pickProjected(e);
-      final eMeas = e == null ? null : pickMeasured(e);
-
-      final otherParts = <String>[];
-      if (s?.notes?.trim().isNotEmpty ?? false) {
-        otherParts.add('TL: ${s!.notes!.trim()}');
-      }
-      if (e?.notes?.trim().isNotEmpty ?? false) {
-        otherParts.add('FL: ${e!.notes!.trim()}');
-      }
-      if (s != null && usesBoostOnly(s)) {
-        otherParts.add('TL forcerat (ingen grund)');
-      }
-      if (e != null && usesBoostOnly(e)) {
-        otherParts.add('FL forcerat (ingen grund)');
-      }
-
+      // “Övrigt” must always be empty
       sheet.appendRow([
-        TextCellValue(room),
+        TextCellValue(er.room),
 
-        // Tilluft
+        // TL
         TextCellValue(fmtNum(sProj)),
         TextCellValue(fmtNum(sMeas)),
         TextCellValue(s?.setting ?? ''),
         TextCellValue(fmtNum(s?.pressurePa)),
         TextCellValue(fmtNum(s?.kFactor)),
 
-        // Frånluft
+        // FL
         TextCellValue(fmtNum(eProj)),
         TextCellValue(fmtNum(eMeas)),
         TextCellValue(e?.setting ?? ''),
         TextCellValue(fmtNum(e?.pressurePa)),
         TextCellValue(fmtNum(e?.kFactor)),
 
-        // Övrigt
-        TextCellValue(otherParts.join(' • ')),
+        // Övrigt empty
+        TextCellValue(''),
       ]);
     }
 
@@ -331,10 +405,4 @@ class ProjectsController extends StateNotifier<AsyncValue<List<Project>>> {
 
   Future<Project?> getProjectById(String projectId) =>
       _repo.getProject(projectId);
-}
-
-// helper class inside the same file (below controller)
-class _RoomRow {
-  MeasurementPoint? supply;
-  MeasurementPoint? exhaust;
 }

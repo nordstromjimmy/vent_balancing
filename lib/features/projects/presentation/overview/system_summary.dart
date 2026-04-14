@@ -22,13 +22,13 @@ class SystemSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final subtitle = mode == SummaryMode.base
+    /*     final subtitle = mode == SummaryMode.base
         ? '${summary.measuredBaseCount}/${summary.totalCount} mätta • '
               'Proj balans: ${summary.baseProjectedBalancePct == null ? '—' : '${summary.baseProjectedBalancePct!.toStringAsFixed(0)}%'} • '
               'Mätt balans: ${summary.baseMeasuredBalancePct == null ? '—' : '${summary.baseMeasuredBalancePct!.toStringAsFixed(0)}%'}'
         : '${summary.measuredBoostCount}/${summary.totalCount} mätta • '
               'Proj balans: ${summary.boostProjectedBalancePct == null ? '—' : '${summary.boostProjectedBalancePct!.toStringAsFixed(0)}%'} • '
-              'Mätt balans: ${summary.boostMeasuredBalancePct == null ? '—' : '${summary.boostMeasuredBalancePct!.toStringAsFixed(0)}%'}';
+              'Mätt balans: ${summary.boostMeasuredBalancePct == null ? '—' : '${summary.boostMeasuredBalancePct!.toStringAsFixed(0)}%'}'; */
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -42,7 +42,7 @@ class SystemSummaryCard extends StatelessWidget {
             'Systemöversikt',
             style: TextStyle(fontWeight: FontWeight.w800),
           ),
-          subtitle: Text(subtitle),
+          //subtitle: Text(subtitle),
           children: [
             SegmentedButton<SummaryMode>(
               segments: const [

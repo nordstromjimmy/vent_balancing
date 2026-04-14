@@ -27,14 +27,29 @@ class ProjectsListPage extends ConsumerWidget {
                 Navigator.pop(context, textController.text.trim()),
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Ångra'),
-            ),
-            FilledButton(
-              onPressed: () =>
-                  Navigator.pop(context, textController.text.trim()),
-              child: const Text('Skapa'),
+            Row(
+              children: [
+                TextButton(
+                  style: ButtonStyle(
+                    foregroundColor: WidgetStatePropertyAll<Color>(
+                      Colors.black54,
+                    ),
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Ångra'),
+                ),
+                Spacer(),
+                FilledButton(
+                  style: ButtonStyle(
+                    backgroundColor: WidgetStatePropertyAll<Color>(
+                      Colors.black54,
+                    ),
+                  ),
+                  onPressed: () =>
+                      Navigator.pop(context, textController.text.trim()),
+                  child: const Text('Skapa'),
+                ),
+              ],
             ),
           ],
         );
@@ -73,6 +88,8 @@ class ProjectsListPage extends ConsumerWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _createProject(context, ref),
         icon: const Icon(Icons.add),
+        foregroundColor: Colors.white,
+        backgroundColor: Colors.black54,
         label: const Text('Nytt projekt'),
       ),
       body: projectsAsync.when(
@@ -117,7 +134,6 @@ class ProjectsListPage extends ConsumerWidget {
             itemBuilder: (context, index) {
               final p = projects[index];
               final pointsCount = p.points.length;
-              //final updated = p.updatedAt ?? p.createdAt;
 
               return Dismissible(
                 key: ValueKey(p.id),
@@ -172,16 +188,14 @@ class ProjectsListPage extends ConsumerWidget {
                           }
                         }
 
-                        if (value == 'delete') {
-                          final ok = await showConfirmDialog(
-                            context: context,
-                            title: 'Radera projekt?',
-                            message:
-                                '“${p.name}” kommer att tas bort från den här enheten.',
-                            confirmText: 'Radera',
-                          );
-                          if (ok) {
-                            await controller.deleteProject(p.id);
+                        if (value == 'duplicate') {
+                          final newProjectId = await controller
+                              .duplicateProject(p.id);
+
+                          if (newProjectId != null && context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Projekt kopierat')),
+                            );
                           }
                         }
                       },
@@ -189,6 +203,10 @@ class ProjectsListPage extends ConsumerWidget {
                         PopupMenuItem(
                           value: 'rename',
                           child: Text('Ändra namn'),
+                        ),
+                        PopupMenuItem(
+                          value: 'duplicate',
+                          child: Text('Kopiera projekt'),
                         ),
                       ],
                     ),

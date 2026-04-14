@@ -116,8 +116,7 @@ class _OverviewPageState extends ConsumerState<OverviewPage> {
               expanded: _summaryExpanded,
               onExpandedChanged: (v) => setState(() => _summaryExpanded = v),
               mode: _summaryMode,
-              onModeChanged: (m) =>
-                  setState(() => _summaryMode = m as SummaryMode),
+              onModeChanged: (m) => setState(() => _summaryMode = m),
             ),
 
             const Divider(height: 1),

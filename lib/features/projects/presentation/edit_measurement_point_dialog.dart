@@ -260,11 +260,26 @@ class _EditMeasurementPointDialogState
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Ångra'),
+        Row(
+          children: [
+            TextButton(
+              style: ButtonStyle(
+                foregroundColor: WidgetStatePropertyAll<Color>(Colors.black54),
+              ),
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Ångra'),
+            ),
+            Spacer(),
+            FilledButton(
+              style: ButtonStyle(
+                foregroundColor: WidgetStatePropertyAll<Color>(Colors.white),
+                backgroundColor: WidgetStatePropertyAll<Color>(Colors.black54),
+              ),
+              onPressed: _save,
+              child: const Text('Spara'),
+            ),
+          ],
         ),
-        FilledButton(onPressed: _save, child: const Text('Spara')),
       ],
     );
   }

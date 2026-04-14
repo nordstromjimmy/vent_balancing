@@ -95,6 +95,8 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage>
       floatingActionButton: FloatingActionButton.extended(
         onPressed: project == null ? null : () => _addPoint(context),
         icon: const Icon(Icons.add),
+        foregroundColor: Colors.white,
+        backgroundColor: Colors.black54,
         label: const Text('Nytt flöde'),
       ),
     );

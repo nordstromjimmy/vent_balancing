@@ -29,7 +29,7 @@ class OverviewHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -39,11 +39,11 @@ class OverviewHeader extends StatelessWidget {
             children: [
               MetricChip(label: 'Totalt', value: '$total'),
               MetricChip(label: 'OK', value: '$okCount'),
-              MetricChip(label: 'Varningar', value: '$warnCount'),
+              MetricChip(label: 'Behov', value: '$warnCount'),
               MetricChip(label: 'Dåliga', value: '$badCount'),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Row(
             children: [
               Expanded(
