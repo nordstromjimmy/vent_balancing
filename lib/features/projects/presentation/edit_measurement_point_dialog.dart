@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/widgets/app_dialog.dart';
 import '../domain/measurement_point.dart';
 
 class EditMeasurementPointDialog extends StatefulWidget {
@@ -47,10 +48,10 @@ class _EditMeasurementPointDialogState
     _tolerance = TextEditingController(text: p.tolerancePct.toStringAsFixed(0));
 
     _projectedBase = TextEditingController(
-      text: p.projectedBaseLs?.toStringAsFixed(1),
+      text: p.projectedBaseLs?.toStringAsFixed(0),
     );
     _measuredBase = TextEditingController(
-      text: p.measuredBaseLs?.toStringAsFixed(1) ?? '',
+      text: p.measuredBaseLs?.toStringAsFixed(0) ?? '',
     );
 
     _hasBoost = p.projectedBoostLs != null;
@@ -132,7 +133,7 @@ class _EditMeasurementPointDialogState
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return AppDialog(
       title: const Text('Redigera mätning'),
       content: SingleChildScrollView(
         child: Column(
@@ -284,7 +285,14 @@ class _EditMeasurementPointDialogState
               child: const Text('Ångra'),
             ),
             const Spacer(),
-            FilledButton(onPressed: _save, child: const Text('Spara')),
+            FilledButton(
+              style: const ButtonStyle(
+                foregroundColor: WidgetStatePropertyAll<Color>(Colors.white),
+                backgroundColor: WidgetStatePropertyAll<Color>(Colors.black54),
+              ),
+              onPressed: _save,
+              child: const Text('Spara'),
+            ),
           ],
         ),
       ],

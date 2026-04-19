@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vent_balancing/core/widgets/app_dialog.dart';
 
 Future<String?> showTextInputDialog({
   required BuildContext context,
@@ -12,7 +13,7 @@ Future<String?> showTextInputDialog({
     context: context,
     builder: (context) {
       final c = TextEditingController(text: initialValue ?? '');
-      return AlertDialog(
+      return AppDialog(
         title: Text(title),
         content: TextField(
           controller: c,
@@ -24,22 +25,11 @@ Future<String?> showTextInputDialog({
           Row(
             children: [
               TextButton(
-                style: ButtonStyle(
-                  foregroundColor: WidgetStatePropertyAll<Color>(
-                    Colors.black54,
-                  ),
-                ),
                 onPressed: () => Navigator.pop(context),
                 child: const Text('Ångra'),
               ),
-              Spacer(),
+              const Spacer(),
               FilledButton(
-                style: ButtonStyle(
-                  foregroundColor: WidgetStatePropertyAll<Color>(Colors.white),
-                  backgroundColor: WidgetStatePropertyAll<Color>(
-                    Colors.black54,
-                  ),
-                ),
                 onPressed: () => Navigator.pop(context, c.text.trim()),
                 child: Text(confirmText),
               ),
@@ -60,7 +50,7 @@ Future<bool> showConfirmDialog({
   final result = await showDialog<bool>(
     context: context,
     builder: (context) {
-      return AlertDialog(
+      return AppDialog(
         title: Text(title),
         content: Text(message),
         actions: [
@@ -68,21 +58,10 @@ Future<bool> showConfirmDialog({
             children: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                style: ButtonStyle(
-                  foregroundColor: WidgetStatePropertyAll<Color>(
-                    Colors.black54,
-                  ),
-                ),
                 child: const Text('Ångra'),
               ),
-              Spacer(),
-              FilledButton.tonal(
-                style: ButtonStyle(
-                  foregroundColor: WidgetStatePropertyAll<Color>(Colors.white),
-                  backgroundColor: WidgetStatePropertyAll<Color>(
-                    Colors.black54,
-                  ),
-                ),
+              const Spacer(),
+              FilledButton(
                 onPressed: () => Navigator.pop(context, true),
                 child: Text(confirmText),
               ),

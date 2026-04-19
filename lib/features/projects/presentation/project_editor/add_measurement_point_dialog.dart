@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../core/widgets/app_dialog.dart';
 import '../../domain/measurement_point.dart';
 
 /// Shows the "add measurement point" dialog.
@@ -130,7 +131,7 @@ class _AddMeasurementPointDialogState
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return AppDialog(
       title: const Text('Lägg till flöde'),
       content: SingleChildScrollView(
         child: Column(
@@ -151,13 +152,13 @@ class _AddMeasurementPointDialogState
               spacing: 8,
               runSpacing: 8,
               children: [
-                FilterChip(
-                  label: const Text('Tilluft'),
+                _AirTypeChip(
+                  label: 'Tilluft',
                   selected: _includeSupply,
                   onSelected: (v) => setState(() => _includeSupply = v),
                 ),
-                FilterChip(
-                  label: const Text('Frånluft'),
+                _AirTypeChip(
+                  label: 'Frånluft',
                   selected: _includeExhaust,
                   onSelected: (v) => setState(() => _includeExhaust = v),
                 ),
@@ -232,6 +233,45 @@ class _AddMeasurementPointDialogState
           ],
         ),
       ],
+    );
+  }
+}
+
+/// A [FilterChip] styled to match the app's [FilledButton] when selected:
+/// solid teal background with white text and checkmark.
+class _AirTypeChip extends StatelessWidget {
+  const _AirTypeChip({
+    required this.label,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final String label;
+  final bool selected;
+  final ValueChanged<bool> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    const teal = Color(0xFF006876);
+
+    return FilterChip(
+      label: Text(
+        label,
+        style: TextStyle(
+          color: selected ? Colors.white : const Color(0xFF374151),
+          fontWeight: FontWeight.w600,
+          fontSize: 13,
+        ),
+      ),
+      selected: selected,
+      onSelected: onSelected,
+      selectedColor: teal,
+      checkmarkColor: Colors.white,
+      backgroundColor: const Color(0xFFF3F4F6),
+      side: BorderSide(color: selected ? teal : const Color(0xFFD1D5DB)),
+      showCheckmark: true,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     );
   }
 }

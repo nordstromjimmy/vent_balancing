@@ -108,15 +108,15 @@ class SystemSummaryCardContent extends StatelessWidget {
           spacing: 8,
           runSpacing: 8,
           children: [
-            MetricChip(label: 'Proj TL', value: fmtLs(projSupply, decimals: 1)),
+            MetricChip(label: 'Proj TL', value: fmtLs(projSupply, decimals: 0)),
             MetricChip(
               label: 'Proj FL',
-              value: fmtLs(projExhaust, decimals: 1),
+              value: fmtLs(projExhaust, decimals: 0),
             ),
-            MetricChip(label: 'Mätt TL', value: fmtLs(measSupply, decimals: 1)),
+            MetricChip(label: 'Mätt TL', value: fmtLs(measSupply, decimals: 0)),
             MetricChip(
               label: 'Mätt FL',
-              value: fmtLs(measExhaust, decimals: 1),
+              value: fmtLs(measExhaust, decimals: 0),
             ),
           ],
         ),

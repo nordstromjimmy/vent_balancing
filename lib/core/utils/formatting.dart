@@ -3,7 +3,7 @@ String fmtLs(double? v, {int decimals = 0}) =>
     v == null ? '—' : '${v.toStringAsFixed(decimals)} l/s';
 
 /// Formats a flow value without the unit, or "—" if null.
-String fmtLsRaw(double? v, {int decimals = 1}) =>
+String fmtLsRaw(double? v, {int decimals = 0}) =>
     v == null ? '—' : v.toStringAsFixed(decimals);
 
 /// Formats a percentage, e.g. "95%", or "—" if null.
@@ -18,7 +18,7 @@ String fmtDeviationPct(double? v, {int decimals = 0}) {
 }
 
 /// Formats a signed delta, e.g. "+3.5 l/s" or "-1.0 l/s".
-String fmtDeltaLs(double v, {int decimals = 1}) {
+String fmtDeltaLs(double v, {int decimals = 0}) {
   final sign = v >= 0 ? '+' : '';
   return '$sign${v.toStringAsFixed(decimals)} l/s';
 }
