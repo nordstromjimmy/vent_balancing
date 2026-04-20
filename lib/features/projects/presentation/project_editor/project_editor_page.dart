@@ -27,6 +27,8 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage>
   void initState() {
     super.initState();
     _tabs = TabController(length: 2, vsync: this);
+    // Trigger a rebuild when the tab index changes so the FAB can hide/show.
+    _tabs.addListener(() => setState(() {}));
   }
 
   @override
@@ -38,7 +40,7 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage>
   Future<void> _addPoint(BuildContext context, Project project) async {
     final points = await showAddMeasurementPointDialog(
       context,
-      tolerancePct: project.defaultTolerancePct, // ← wired through
+      tolerancePct: project.defaultTolerancePct,
     );
     if (points == null || points.isEmpty) return;
 
@@ -49,18 +51,29 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage>
 
   @override
   Widget build(BuildContext context) {
+    // ref.listen fires once per state change — the correct way to trigger
+    // navigation as a side effect without scheduling multiple callbacks.
+    ref.listen<AsyncValue<List<Project>>>(projectsControllerProvider, (
+      _,
+      next,
+    ) {
+      next.whenData((projects) {
+        final exists = projects.any((p) => p.id == widget.projectId);
+        if (!exists && mounted) Navigator.of(context).pop();
+      });
+    });
+
     final projectsAsync = ref.watch(projectsControllerProvider);
 
-    // ← compute once, used for AppBar title, FAB guard, and actions
     final Project? project = projectsAsync.whenOrNull(
-      data: (projects) {
-        try {
-          return projects.firstWhere((p) => p.id == widget.projectId);
-        } catch (_) {
-          return null;
-        }
-      },
+      data: (projects) =>
+          projects.where((p) => p.id == widget.projectId).firstOrNull,
     );
+
+    // Only show the FAB on the Mätningar tab (index 0).
+    // _tabs.indexIsChanging is true mid-swipe — checking only index means the
+    // FAB hides/shows as soon as the tab settles, not mid-animation.
+    final showFab = _tabs.index == 0;
 
     return Scaffold(
       appBar: AppBar(
@@ -79,27 +92,35 @@ class _ProjectEditorPageState extends ConsumerState<ProjectEditorPage>
       body: projectsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, st) => Center(child: Text('Error: $e')),
-        data: (_) => TabBarView(
-          controller: _tabs,
-          children: [
-            MeasureTab(projectId: widget.projectId),
-            OverviewPage(
-              projectId: widget.projectId,
-              filter: _filter,
-              sort: _sort,
-              onFilterChanged: (f) => setState(() => _filter = f),
-              onSortChanged: (s) => setState(() => _sort = s),
-            ),
-          ],
-        ),
+        data: (_) {
+          if (project == null) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return TabBarView(
+            controller: _tabs,
+            physics: const NeverScrollableScrollPhysics(),
+            children: [
+              MeasureTab(projectId: widget.projectId),
+              OverviewPage(
+                projectId: widget.projectId,
+                filter: _filter,
+                sort: _sort,
+                onFilterChanged: (f) => setState(() => _filter = f),
+                onSortChanged: (s) => setState(() => _sort = s),
+              ),
+            ],
+          );
+        },
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: project == null ? null : () => _addPoint(context, project),
-        icon: const Icon(Icons.add),
-        foregroundColor: Colors.white,
-        backgroundColor: Colors.black54,
-        label: const Text('Nytt flöde'),
-      ),
+      floatingActionButton: showFab
+          ? FloatingActionButton.extended(
+              onPressed: project == null
+                  ? null
+                  : () => _addPoint(context, project),
+              icon: const Icon(Icons.add),
+              label: const Text('Nytt flöde'),
+            )
+          : null,
     );
   }
 }

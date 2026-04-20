@@ -49,12 +49,14 @@ class ProjectEditorActions extends ConsumerWidget {
             title: 'Radera projekt?',
             message: p == null
                 ? 'Det här projektet kommer att tas bort från den här enheten.'
-                : '“${p.name}” kommer att tas bort från den här enheten.',
+                : '"${p.name}" kommer att tas bort från den här enheten.',
             confirmText: 'Radera',
           );
           if (ok) {
             await controller.deleteProject(projectId);
-            if (context.mounted) Navigator.pop(context);
+            // ← No Navigator.pop here. project_editor_page.dart's ref.listen
+            // detects the missing project and pops exactly once, regardless of
+            // whether deletion came from here or from a swipe on the list page.
           }
         }
 
