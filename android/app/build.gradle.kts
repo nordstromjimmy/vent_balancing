@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.vent_balancing"
+    namespace = "com.jimmysvent.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
