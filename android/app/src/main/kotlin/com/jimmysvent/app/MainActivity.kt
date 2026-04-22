@@ -1,4 +1,4 @@
-package com.example.vent_balancing
+package com.jimmysvent.app
 
 import io.flutter.embedding.android.FlutterActivity
 

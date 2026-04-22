@@ -7,7 +7,6 @@ import 'app/app.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
-  //await Hive.deleteBoxFromDisk('projects_box');
 
   runApp(const ProviderScope(child: VentBalancingApp()));
 }
