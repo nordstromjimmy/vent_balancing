@@ -2,13 +2,58 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/utils/dialogs.dart';
 import '../application/projects_controller.dart';
+import 'calculator_page.dart';
 import 'project_editor/project_editor_page.dart';
 
-class ProjectsListPage extends ConsumerWidget {
+// ─────────────────────────────────────────────────────────────────────────────
+// Shell — owns the bottom nav and keeps each tab alive when switching.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class ProjectsListPage extends StatefulWidget {
   const ProjectsListPage({super.key});
 
+  @override
+  State<ProjectsListPage> createState() => _ProjectsListPageState();
+}
+
+class _ProjectsListPageState extends State<ProjectsListPage> {
+  int _currentIndex = 0;
+
+  // Keep both pages alive so state is preserved when switching tabs.
+  final _pages = const [_ProjectsTab(), CalculatorPage()];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: IndexedStack(index: _currentIndex, children: _pages),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _currentIndex,
+        onDestinationSelected: (i) => setState(() => _currentIndex = i),
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.folder_outlined),
+            selectedIcon: Icon(Icons.folder),
+            label: 'Projekt',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.calculate_outlined),
+            selectedIcon: Icon(Icons.calculate),
+            label: 'Kalkylator',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Projects tab — extracted from the old ProjectsListPage
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _ProjectsTab extends ConsumerWidget {
+  const _ProjectsTab();
+
   Future<void> _createProject(BuildContext context, WidgetRef ref) async {
-    // ← was an inline AlertDialog duplicating showTextInputDialog
     final name = await showTextInputDialog(
       context: context,
       title: 'Nytt projekt',
@@ -37,22 +82,10 @@ class ProjectsListPage extends ConsumerWidget {
     final projectsAsync = ref.watch(projectsControllerProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Projekt'),
-        actions: [
-          IconButton(
-            tooltip: 'Uppdatera',
-            onPressed: () =>
-                ref.read(projectsControllerProvider.notifier).refresh(),
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Projekt')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _createProject(context, ref),
         icon: const Icon(Icons.add),
-        foregroundColor: Colors.white,
-        backgroundColor: Colors.black54,
         label: const Text('Nytt projekt'),
       ),
       body: projectsAsync.when(
@@ -154,7 +187,6 @@ class ProjectsListPage extends ConsumerWidget {
                         if (value == 'duplicate') {
                           final newProjectId = await controller
                               .duplicateProject(p.id);
-
                           if (newProjectId != null && context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Projekt kopierat')),
