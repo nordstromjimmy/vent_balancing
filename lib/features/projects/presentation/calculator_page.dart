@@ -143,7 +143,16 @@ class _CalculatorPageState extends State<CalculatorPage> {
     final solveForP = _solveFor == _SolveFor.pressure;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Kalkylator')),
+      appBar: AppBar(
+        title: const Text('Kalkylator'),
+        actions: [
+          IconButton(
+            tooltip: 'Rensa',
+            icon: const Icon(Icons.refresh),
+            onPressed: _reset,
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
         child: Column(
@@ -275,10 +284,10 @@ class _CalculatorPageState extends State<CalculatorPage> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFBF2020).withOpacity(0.08),
+                  color: const Color(0xFFBF2020).withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: const Color(0xFFBF2020).withOpacity(0.3),
+                    color: const Color(0xFFBF2020).withValues(alpha: 0.3),
                   ),
                 ),
                 child: Row(
@@ -310,9 +319,9 @@ class _CalculatorPageState extends State<CalculatorPage> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: cs.primary.withOpacity(0.07),
+                  color: cs.primary.withValues(alpha: 0.07),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: cs.primary.withOpacity(0.25)),
+                  border: Border.all(color: cs.primary.withValues(alpha: 0.25)),
                 ),
                 child: Column(
                   children: [
